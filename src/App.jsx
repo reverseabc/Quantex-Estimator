@@ -1,12 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Copy, Check, Calendar, Briefcase, FileText, Layers, Clock, Download, Coins, X, Server, LogOut, Save, LayoutGrid, Search, User, Shield, AlertCircle, CheckCircle, Send, AlertTriangle, Table, Menu, Home, BarChart3, Settings, Filter, Tag, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Copy, Check, Calendar, Briefcase, FileText, Layers, Clock, Download, Coins, X, Server, Save, User, Shield, CheckCircle, Send, AlertTriangle, Table, ArrowLeft } from 'lucide-react';
+import { Sidebar } from './Sidebar';
+import { LoginView, ReportsView } from './LoginView';
+import { DashboardView } from './DashboardView';
 
 /**
  * ------------------------------------------------------------------
  * UTILITIES
  * ------------------------------------------------------------------
  */
-const formatCurrency = (amount) => {
+export const formatCurrency = (amount) => {
   return Number(amount || 0).toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
@@ -61,112 +64,6 @@ const DEFAULT_TM_SECTIONS = {
 
 /**
  * ------------------------------------------------------------------
- * COMPONENT: SIDEBAR (Off-Canvas Drawer)
- * ------------------------------------------------------------------
- */
-const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
-  const [imgError, setImgError] = useState(false);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-      />
-      
-      {/* Drawer */}
-      <div className={`fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col h-full">
-          
-          {/* Header */}
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            {!imgError ? (
-                <img 
-                  src="logo.png" 
-                  alt="FirstBaseIT" 
-                  className="h-8 object-contain"
-                  onError={() => setImgError(true)} 
-                />
-            ) : (
-                <span className="text-lg font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span></span>
-            )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex-1 p-4 space-y-1 overflow-y-auto">
-            <p className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Menu</p>
-            
-            <button onClick={() => onNavigate('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors group">
-              <Home size={18} className="group-hover:text-[#5ABBCE]" />
-              <span className="font-medium">Dashboard</span>
-            </button>
-            
-            <button onClick={() => onNavigate('create')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors group">
-              <Plus size={18} className="group-hover:text-[#5ABBCE]" />
-              <span className="font-medium">New Estimate</span>
-            </button>
-
-            <button onClick={() => onNavigate('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors group">
-              <Search size={18} className="group-hover:text-[#5ABBCE]" />
-              <span className="font-medium">Search / Archive</span>
-            </button>
-
-            {/* Reports Group with Hover Submenu */}
-            <div className="group relative">
-                <button onClick={() => onNavigate('reports')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors">
-                    <BarChart3 size={18} className="group-hover:text-[#5ABBCE]" />
-                    <span className="font-medium">Reports</span>
-                </button>
-                {/* Submenu container that appears on hover */}
-                <div className="hidden group-hover:block pl-4 pr-4 pb-2">
-                    <div className="pl-9 border-l-2 border-slate-100 space-y-1">
-                         <button 
-                            onClick={() => onNavigate('reports')} 
-                            className="block w-full text-left text-sm text-slate-500 hover:text-[#5ABBCE] hover:bg-slate-50 py-1.5 pl-3 rounded-r-md transition-colors"
-                         >
-                            Approved Estimates
-                         </button>
-                    </div>
-                </div>
-            </div>
-
-          </div>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-            
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors mb-2">
-              <Settings size={18} />
-              <span className="font-medium">Settings / Admin</span>
-            </button>
-
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white">
-              <div className="h-9 w-9 rounded-full bg-[#5ABBCE]/10 text-[#5ABBCE] flex items-center justify-center font-bold">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-700 truncate">{user.name}</p>
-                <p className="text-xs text-slate-500 truncate">{user.email}</p>
-              </div>
-              <button onClick={onLogout} className="text-slate-400 hover:text-red-500" title="Logout">
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </>
-  );
-};
-
-
-/**
- * ------------------------------------------------------------------
  * COMPONENT: TAB NAVIGATION
  * ------------------------------------------------------------------
  */
@@ -186,549 +83,6 @@ const TabNavigation = ({ tabs, activeTab, setActiveTab }) => {
           {tab.label}
         </button>
       ))}
-    </div>
-  );
-};
-
-
-/**
- * ------------------------------------------------------------------
- * COMPONENT: LOGIN VIEW
- * ------------------------------------------------------------------
- */
-const LoginView = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [imgError, setImgError] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const userPart = email.split('@')[0] || 'User';
-      const formattedName = userPart.charAt(0).toUpperCase() + userPart.slice(1);
-      // Default to Estimator on login
-      onLogin({ email, name: formattedName, role: 'Estimator' });
-      setIsLoading(false);
-    }, 800);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
-        <div className="bg-white p-8 border-b border-slate-100 flex justify-center">
-            {!imgError ? (
-                <img 
-                  src="logo.png" 
-                  alt="FirstBaseIT Ltd." 
-                  className="h-16 object-contain"
-                  onError={() => setImgError(true)} 
-                />
-            ) : (
-                <span className="text-3xl font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.</span>
-            )}
-        </div>
-        
-        <div className="p-8 space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Welcome back</h2>
-            <p className="text-slate-500 mt-2 text-sm">Sign in to access</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
-              <input 
-                type="email" 
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] outline-none transition-all"
-                placeholder="name@firstbaseit.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-              <input 
-                type="password" 
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] outline-none transition-all"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-[#5ABBCE] hover:brightness-95 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              {isLoading ? 'Signing In...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-        <div className="bg-slate-50 p-4 text-center text-xs text-slate-400">
-          © 2026 FirstBaseIT Ltd.
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-/**
- * ------------------------------------------------------------------
- * COMPONENT: REPORTS VIEW
- * ------------------------------------------------------------------
- */
-const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
-  const [filterType, setFilterType] = useState('30days'); // 30days, 90days, ytd, custom
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-
-  // Calculate Date Range based on filter type
-  const dateRange = useMemo(() => {
-    const end = new Date();
-    let start = new Date();
-
-    if (filterType === '30days') {
-      start.setDate(end.getDate() - 30);
-    } else if (filterType === '90days') {
-      start.setDate(end.getDate() - 90);
-    } else if (filterType === 'ytd') {
-      start = new Date(new Date().getFullYear(), 0, 1);
-    } else if (filterType === 'custom') {
-      if (!customStartDate) return null;
-      start = new Date(customStartDate);
-      end.setTime(customEndDate ? new Date(customEndDate).getTime() : new Date().getTime());
-    }
-    
-    // Set boundaries to start/end of day
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    
-    return { start, end };
-  }, [filterType, customStartDate, customEndDate]);
-
-  // Filter Data
-  const filteredEstimates = useMemo(() => {
-    if (!savedEstimates || !dateRange) return [];
-
-    return savedEstimates.filter(est => {
-      // 1. Must be Approved
-      if (est.status !== 'Approved') return false;
-
-      // 2. Must be within date range
-      const estDate = new Date(est.projectDate);
-      estDate.setHours(12, 0, 0, 0); // Avoid timezone offset issues
-      
-      return estDate >= dateRange.start && estDate <= dateRange.end;
-    }).sort((a, b) => new Date(b.projectDate) - new Date(a.projectDate)); // Newest first
-  }, [savedEstimates, dateRange]);
-
-  // Calculate Summary Metrics
-  const totalValue = filteredEstimates.reduce((acc, curr) => acc + (curr.grandTotal || 0), 0);
-  const averageValue = filteredEstimates.length > 0 ? totalValue / filteredEstimates.length : 0;
-
-  // Simple CSV Export for this specific report
-  const handleExportReport = () => {
-    const headers = ['Project Name', 'JIRA Ref', 'Owner', 'Date', 'Grand Total Excl. VAT'];
-    const rows = filteredEstimates.map(e => [
-      `"${e.projectName}"`,
-      `"${e.jiraRef || ''}"`,
-      `"${e.owner}"`,
-      e.projectDate,
-      e.grandTotal
-    ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Approved_Estimates_${filterType}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-              <Menu size={24} />
-            </button>
-            <h1 className="font-bold text-slate-700 text-lg">Reports & Analytics</h1>
-          </div>
-          
-           <div className="flex items-center gap-4">
-            <div className="h-8 w-8 rounded-full bg-[#5ABBCE]/20 text-[#5ABBCE] flex items-center justify-center font-bold">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        
-        {/* Report Header & Filters */}
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-8">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <CheckCircle size={24} className="text-green-600" />
-                    Approved Estimates Report
-                </h2>
-                <p className="text-slate-500 mt-1">A complete list of all estimates currently marked as Approved.</p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                <div className="flex bg-slate-100 rounded-lg p-1">
-                    <button 
-                        onClick={() => setFilterType('30days')} 
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === '30days' ? 'bg-white text-[#5ABBCE] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Last 30 Days
-                    </button>
-                    <button 
-                        onClick={() => setFilterType('90days')} 
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === '90days' ? 'bg-white text-[#5ABBCE] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Last 90 Days
-                    </button>
-                    <button 
-                        onClick={() => setFilterType('ytd')} 
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === 'ytd' ? 'bg-white text-[#5ABBCE] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        YTD
-                    </button>
-                    <button 
-                        onClick={() => setFilterType('custom')} 
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === 'custom' ? 'bg-white text-[#5ABBCE] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Custom
-                    </button>
-                </div>
-
-                {filterType === 'custom' && (
-                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
-                        <input 
-                            type="date" 
-                            value={customStartDate} 
-                            onChange={(e) => setCustomStartDate(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]"
-                        />
-                        <span className="text-slate-400 text-xs">to</span>
-                        <input 
-                            type="date" 
-                            value={customEndDate} 
-                            onChange={(e) => setCustomEndDate(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]"
-                        />
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Summary Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Approved Count</p>
-                    <p className="text-2xl font-bold text-slate-800 mt-1">{filteredEstimates.length}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-                    <FileText size={20} />
-                </div>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Value (Gross)</p>
-                    <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalValue)}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <Coins size={20} />
-                </div>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Average Value</p>
-                    <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(averageValue)}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                    <BarChart3 size={20} />
-                </div>
-            </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Filter size={16} />
-                    <span>Showing estimates from <strong>{dateRange?.start.toLocaleDateString()}</strong> to <strong>{dateRange?.end.toLocaleDateString()}</strong></span>
-                </div>
-                <button 
-                    onClick={handleExportReport}
-                    className="text-xs font-bold text-[#5ABBCE] hover:text-[#4a9bb0] flex items-center gap-1 transition-colors"
-                >
-                    <Download size={14} /> Export CSV
-                </button>
-            </div>
-
-            {filteredEstimates.length === 0 ? (
-                 <div className="p-12 text-center">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                        <CheckCircle size={32} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-700 mb-1">No approved estimates found</h3>
-                    <p className="text-slate-500">Try adjusting the date range or Approve more estimates.</p>
-                </div>
-            ) : (
-                <table className="w-full text-left text-sm">
-                    <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-xs">
-                            <th className="px-6 py-3 font-bold">Project Name</th>
-                            <th className="px-6 py-3 font-bold">JIRA Ref</th>
-                            <th className="px-6 py-3 font-bold">Owner</th>
-                            <th className="px-6 py-3 font-bold">Date Approved</th>
-                            <th className="px-6 py-3 font-bold text-right">Total Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {filteredEstimates.map(est => (
-                            <tr key={est.id} className="hover:bg-slate-50/80 transition-colors">
-                                <td className="px-6 py-3 font-medium text-slate-700">{est.projectName}</td>
-                                <td className="px-6 py-3 text-slate-500">{est.jiraRef || '-'}</td>
-                                <td className="px-6 py-3 text-slate-500">{est.owner}</td>
-                                <td className="px-6 py-3 text-slate-500">{new Date(est.projectDate).toLocaleDateString()}</td>
-                                <td className="px-6 py-3 text-right font-bold text-emerald-600">{formatCurrency(est.grandTotal)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
-        
-      </main>
-    </div>
-  )
-};
-
-
-/**
- * ------------------------------------------------------------------
- * COMPONENT: DASHBOARD VIEW
- * ------------------------------------------------------------------
- */
-const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimate, onDeleteEstimate, onLogout, onSwitchRole, onMenuClick, onNavigateToReports }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewFilter, setViewFilter] = useState('all'); // 'all' or 'pending'
-  const [imgError, setImgError] = useState(false);
-
-  // Filter Logic
-  const filteredEstimates = savedEstimates.filter(est => {
-    const matchesSearch = est.projectName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (est.jiraRef && est.jiraRef.toLowerCase().includes(searchTerm.toLowerCase())) || 
-                          est.lastModified.includes(searchTerm);
-    if (viewFilter === 'pending') {
-      return matchesSearch && est.status === 'Pending SPOE Check';
-    }
-    return matchesSearch;
-  });
-
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Dashboard Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-              <Menu size={24} />
-            </button>
-            <div>
-              {!imgError ? (
-                  <img 
-                    src="logo.png" 
-                    alt="FirstBaseIT" 
-                    className="h-10 object-contain"
-                    onError={() => setImgError(true)} 
-                  />
-              ) : (
-                  <span className="text-xl font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.</span>
-              )}
-            </div>
-            <div className="h-6 w-px bg-slate-200 hidden md:block"></div>
-            <h1 className="font-bold text-slate-700 text-lg hidden md:block">Estimation Dashboard</h1>
-             {/* ADDED REPORTS LINK HERE */}
-             <button onClick={onNavigateToReports} className="text-sm font-medium text-slate-500 hover:text-[#5ABBCE] transition-colors ml-4 flex items-center gap-1">
-                <BarChart3 size={16} /> Reports
-             </button>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* ROLE SWITCHER FOR TESTING */}
-            <button 
-              onClick={onSwitchRole}
-              className={`text-xs px-3 py-1 rounded-full border font-bold transition-all ${
-                user.role === 'Manager' 
-                  ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200' 
-                  : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'
-              }`}
-            >
-              Role: {user.role} (Switch)
-            </button>
-
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-bold text-slate-700">{user.name}</span>
-              <span className="text-xs text-slate-500">{user.email}</span>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-[#5ABBCE]/20 text-[#5ABBCE] flex items-center justify-center font-bold">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <button onClick={onLogout} className="p-2 text-slate-400 hover:text-slate-600">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        
-        {/* Manager Pending Alert */}
-        {user.role === 'Manager' && (
-          <div className="mb-8">
-             <div className="bg-purple-50 border border-purple-100 rounded-xl p-1 flex p-1 gap-2">
-                <button 
-                  onClick={() => setViewFilter('all')}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${viewFilter === 'all' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  All Projects
-                </button>
-                <button 
-                  onClick={() => setViewFilter('pending')}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${viewFilter === 'pending' ? 'bg-purple-600 shadow-sm text-white' : 'text-purple-600 hover:bg-purple-100'}`}
-                >
-                  <AlertCircle size={16} /> Pending Reviews
-                  {savedEstimates.filter(e => e.status === 'Pending SPOE Check').length > 0 && (
-                    <span className="bg-white text-purple-600 text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">
-                      {savedEstimates.filter(e => e.status === 'Pending SPOE Check').length}
-                    </span>
-                  )}
-                </button>
-             </div>
-          </div>
-        )}
-
-        {/* Actions Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search estimates or JIRA ref..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#5ABBCE] outline-none"
-            />
-          </div>
-          <button 
-            onClick={onCreateNew}
-            className="bg-[#5ABBCE] hover:brightness-95 text-white font-bold px-6 py-2 rounded-lg flex items-center gap-2 transition-all shadow-sm"
-          >
-            <Plus size={18} /> Create New Estimate
-          </button>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-slate-500 text-sm font-medium mb-1">Total Estimates</p>
-            <p className="text-3xl font-bold text-slate-800">{savedEstimates.length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-slate-500 text-sm font-medium mb-1">Pending Approval</p>
-            <p className="text-3xl font-bold text-purple-600">{savedEstimates.filter(e => e.status === 'Pending SPOE Check').length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-slate-500 text-sm font-medium mb-1">Total Value Pipeline</p>
-            <p className="text-3xl font-bold text-[#5ABBCE]">
-              {formatCurrency(savedEstimates.reduce((acc, est) => acc + (est.grandTotal || 0), 0))}
-            </p>
-          </div>
-        </div>
-
-        {/* List of Estimates */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-              <LayoutGrid size={18} className="text-slate-400" /> 
-              {viewFilter === 'pending' ? 'Pending Reviews' : 'All Projects'}
-            </h2>
-          </div>
-          
-          {filteredEstimates.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                <FileText size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-700 mb-1">No estimates found</h3>
-              <p className="text-slate-500 mb-6">Create your first project estimate to get started.</p>
-              <button onClick={onCreateNew} className="text-[#5ABBCE] font-bold hover:underline">Create New</button>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredEstimates.map((est) => (
-                <div key={est.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                  <div className="flex-1 cursor-pointer" onClick={() => onOpenEstimate(est)}>
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-bold text-slate-800 text-lg group-hover:text-[#5ABBCE] transition-colors">{est.projectName}</h3>
-                      {/* Status Badge */}
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                        est.status === 'Approved' ? 'bg-green-100 text-green-700 border-green-200' :
-                        est.status === 'Pending SPOE Check' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}>
-                        {est.status || 'Draft'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                      <span className="flex items-center gap-1"><User size={12} /> {est.owner || 'Unknown'}</span>
-                      {est.jiraRef && <span className="flex items-center gap-1"><Tag size={12} /> {est.jiraRef}</span>}
-                      <span className="flex items-center gap-1"><Calendar size={12} /> {est.projectDate}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-8">
-                    <div className="text-right">
-                      <p className="text-xs text-slate-400 uppercase font-bold">Total</p>
-                      <p className="text-lg font-bold text-slate-800">{formatCurrency(est.grandTotal)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       <button 
-                        onClick={() => onOpenEstimate(est)}
-                        className="p-2 text-slate-400 hover:text-[#5ABBCE] transition-colors rounded-lg hover:bg-[#5ABBCE]/10"
-                        title="Edit Estimate"
-                      >
-                        <FileText size={18} />
-                      </button>
-                      <button 
-                        onClick={() => onDeleteEstimate(est.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
-                        title="Delete Estimate"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
     </div>
   );
 };
@@ -1432,10 +786,10 @@ export default function App() {
   const [currentEstimateData, setCurrentEstimateData] = useState(null);
 
   useEffect(() => {
-    const loadedData = localStorage.getItem('fbit_estimates');
-    if (loadedData) {
-      setSavedEstimates(JSON.parse(loadedData));
-    }
+    fetch('/api/estimates')
+      .then(res => res.json())
+      .then(data => setSavedEstimates(data))
+      .catch(err => console.error("Error loading estimates:", err));
   }, []);
 
   useEffect(() => {
@@ -1471,21 +825,43 @@ export default function App() {
     setView('estimate');
   };
 
-  const handleDeleteEstimate = (id) => {
+  const handleDeleteEstimate = async (id) => {
     if (confirm('Are you sure you want to delete this estimate?')) {
-      setSavedEstimates(savedEstimates.filter(e => e.id !== id));
+      // 2. Tell the Backend to delete it
+      try {
+        await fetch(`/api/estimates/${id}`, { method: 'DELETE' });
+        setSavedEstimates(savedEstimates.filter(e => e.id !== id));
+      } catch (err) {
+        console.error("Failed to delete:", err);
+      }
     }
   };
 
-  const handleSaveEstimate = (estimateData) => {
-    const exists = savedEstimates.find(e => e.id === estimateData.id);
-    if (exists) {
-      setSavedEstimates(savedEstimates.map(e => e.id === estimateData.id ? estimateData : e));
-    } else {
-      setSavedEstimates([estimateData, ...savedEstimates]);
+  const handleSaveEstimate = async (estimateData) => {
+    try {
+      const exists = savedEstimates.find(e => e.id === estimateData.id);
+      if (exists) {
+        // 3. Tell the Backend to UPDATE (PUT) the existing estimate
+        await fetch(`/api/estimates/${estimateData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(estimateData)
+        });
+        setSavedEstimates(savedEstimates.map(e => e.id === estimateData.id ? estimateData : e));
+      } else {
+        // 4. Tell the Backend to CREATE (POST) a new estimate
+        await fetch('/api/estimates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(estimateData)
+        });
+        setSavedEstimates([estimateData, ...savedEstimates]);
+      }
+    } catch (err) {
+      console.error("Failed to save:", err);
     }
   };
-  
+
   const handleNavigate = (page) => {
       setSidebarOpen(false);
       if (page === 'create') handleCreateNew();
