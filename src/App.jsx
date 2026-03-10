@@ -792,10 +792,6 @@ export default function App() {
       .catch(err => console.error("Error loading estimates:", err));
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('fbit_estimates', JSON.stringify(savedEstimates));
-  }, [savedEstimates]);
-
   const setSidebarOpen = (isOpen) => {
       setUser(prev => ({...prev, isSidebarOpen: isOpen}));
   };
