@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 // Locally, we'll fall back to a local 'data' folder so you can still test.
 const DATA_DIR = process.env.RENDER ? '/data' : join(process.cwd(), 'data');
 const DB_FILE = join(DATA_DIR, 'estimates.json');
+const SETTINGS_FILE = join(DATA_DIR, 'settings.json'); // NEW: File to save Manager settings
 
 // Ensure the directory exists when the server starts
 if (!fs.existsSync(DATA_DIR)) {
@@ -43,7 +44,7 @@ app.use(express.json());
 
 /**
  * HELPER FUNCTIONS: Disk I/O 📂
- * These functions handle reading and writing to our persistent file.
+ * These functions handle reading and writing to our persistent files.
  */
 const loadDatabase = () => {
   try {
@@ -54,23 +55,43 @@ const loadDatabase = () => {
   } catch (err) {
     console.error("Error loading database from disk:", err);
   }
-  return []; // Return empty array if file doesn't exist or errors
+  return []; 
 };
 
 const saveDatabase = (data) => {
   try {
-    // SECURITY NOTE: We stringify the data before saving.
-    // This ensures it is stored as plain text, preventing execution of malicious code.
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
     console.error("Error saving database to disk:", err);
   }
 };
 
-// Initialize our local variable from the disk on startup
-let database = loadDatabase();
+// NEW: Helper functions to load and save settings
+const loadSettings = () => {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = fs.readFileSync(SETTINGS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Error loading settings from disk:", err);
+  }
+  return { dailyRate: 1267 }; // Return default of £1267 if file doesn't exist yet
+};
 
-// --- BACKEND API ROUTES ---
+const saveSettings = (data) => {
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error("Error saving settings to disk:", err);
+  }
+};
+
+// Initialize our local variables from the disk on startup
+let database = loadDatabase();
+let globalSettings = loadSettings(); // NEW: Load settings on startup
+
+// --- ESTIMATES API ROUTES ---
 
 app.get('/api/estimates', (req, res) => {
   res.json(database);
@@ -103,7 +124,21 @@ app.delete('/api/estimates/:id', (req, res) => {
   res.status(204).send();
 });
 
-// Serving the Frontend
+// --- SETTINGS API ROUTES (NEW) ---
+
+app.get('/api/settings', (req, res) => {
+  res.json(globalSettings);
+});
+
+app.put('/api/settings', (req, res) => {
+  if (req.body.dailyRate) {
+    globalSettings.dailyRate = Number(req.body.dailyRate);
+    saveSettings(globalSettings); // Commit new rate to Disk
+  }
+  res.json(globalSettings);
+});
+
+// --- SERVING THE FRONTEND ---
 const distPath = join(process.cwd(), 'dist');
 app.use(express.static(distPath));
 
@@ -114,4 +149,5 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Secure Persistent Server is listening on port ${PORT}`);
   console.log(`📂 Database location: ${DB_FILE}`);
+  console.log(`⚙️  Settings location: ${SETTINGS_FILE}`);
 });
