@@ -3,10 +3,11 @@ import { Plus, Trash2, Copy, Check, Calendar, Briefcase, FileText, Layers, Clock
 import { Sidebar } from './Sidebar';
 import { LoginView, ReportsView } from './LoginView';
 import { DashboardView } from './DashboardView';
+import { SettingsView } from './SettingsView'; // NEW IMPORT
 
 /**
  * ------------------------------------------------------------------
- * UTILITIES
+ * UTILITIES & CONSTANTS
  * ------------------------------------------------------------------
  */
 export const formatCurrency = (amount) => {
@@ -16,12 +17,6 @@ export const formatCurrency = (amount) => {
 const formatDays = (days) => {
   return Number(days || 0).toLocaleString('en-GB', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' Days';
 };
-
-/**
- * ------------------------------------------------------------------
- * CONSTANTS & DATA
- * ------------------------------------------------------------------
- */
 
 const DEFAULT_CONSTANTS = [
   { id: 'c1', name: 'Project Management', days: 5, description: 'Weekly syncs, Sprint planning, Status reports' },
@@ -137,13 +132,8 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       tmSum += sectionTotal;
     });
     
-    // Calculate total days for fixed price items (Standard Menu)
     const standardMenuDays = (Number(globalDailyRate) > 0) ? (standardMenuSum / Number(globalDailyRate)) : 0;
-    
-    // Calculate total days for API items
     const apiDays = selectedApiItems.reduce((acc, item) => acc + ((Number(item.days) || 0) * (Number(item.quantity) || 1)), 0);
-    
-    // Calculate total days for constants
     const constantsDays = constants.reduce((acc, item) => acc + (Number(item.days) || 0), 0);
 
     const totalDays = constantsDays + standardMenuDays + apiDays + tmDays;
@@ -151,14 +141,12 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     const baseTotal = constantsSum + standardMenuSum + apiMenuSum + tmSum;
     const bufferAmount = (baseTotal * bufferPercent) / 100;
     const subtotal = baseTotal + bufferAmount;
-    const grandTotal = subtotal; // No VAT added
+    const grandTotal = subtotal; 
 
     return { constantsSum, standardMenuSum, apiMenuSum, tmSum, baseTotal, bufferAmount, subtotal, grandTotal, totalDays };
   }, [constants, selectedStandardItems, selectedApiItems, tmSections, bufferPercent, globalDailyRate]);
 
-
   // --- Workflow Actions ---
-
   const showNotification = (msg) => {
     setNotificationMsg(msg);
     setTimeout(() => setNotificationMsg(''), 3000);
@@ -168,28 +156,23 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     const newStatus = 'Pending SPOE Check';
     setStatus(newStatus);
     handleSaveProject(newStatus); 
-    // Simulate Email
     alert("📧 Email notification sent to all Manager users: 'New Estimate Pending SPOE Check'");
     showNotification('SPOE Check Requested');
     setShowValidationModal(false);
   };
 
   const handleRequestSPOE = () => {
-    // Validation: Check for empty cost sections
     const sectionsToCheck = [
       { key: 'fbitOngoing', label: 'FBIT Ongoing Costs' },
       { key: 'fbitIt', label: 'FBIT IT Costs' },
       { key: 'thirdParty', label: 'Third Party Costs' }
     ];
-
     const emptySections = sectionsToCheck.filter(section => tmSections[section.key].items.length === 0);
-
     if (emptySections.length > 0) {
       setMissingSections(emptySections);
       setShowValidationModal(true);
       return;
     }
-
     executeSPOEUpdate();
   };
 
@@ -264,7 +247,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     rows.push(['', '', '', '', '', 'Base Total', totals.baseTotal]);
     rows.push(['', '', '', '', '', `Buffer (${bufferPercent}%)`, totals.bufferAmount]);
     rows.push(['', '', '', '', '', 'Subtotal', totals.subtotal]);
-    // Removed VAT Row
     rows.push(['', '', '', '', '', 'GRAND TOTAL (Excl. VAT)', totals.grandTotal]);
     
     const csvContent = rows.map(row => 
@@ -356,7 +338,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
   };
   const getSectionTotal = (items) => items.reduce((acc, item) => acc + ((Number(globalDailyRate) || 0) * (Number(item.days) || 0)), 0);
 
-  // Tabs Configuration with Colors (Pastel Palette)
   const tabs = [
     { id: 'summary', label: 'Summary', color: 'blue' },
     { id: 'admin', label: 'Administration & Project Costs', color: 'sky' },
@@ -368,7 +349,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-40 relative">
       
-      {/* --- MODALS --- */}
+      {/* --- MODALS & TOASTS (Unchanged) --- */}
       {showValidationModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden scale-100 transform transition-all">
@@ -399,8 +380,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
           </div>
         </div>
       )}
-
-      {/* --- TOASTS --- */}
       {showCopiedToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
           <Check size={18} className="text-green-400" /> <span className="font-medium">Summary copied</span>
@@ -427,59 +406,31 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
               </button>
               <div>
                 {!imgError ? (
-                  <img 
-                    src="logo.png" 
-                    alt="FirstBaseIT Ltd." 
-                    className="h-10 object-contain"
-                    onError={() => setImgError(true)} 
-                  />
+                  <img src="logo.png" alt="FirstBaseIT Ltd." className="h-10 object-contain" onError={() => setImgError(true)} />
                 ) : (
                   <span className="text-xl font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.</span>
                 )}
               </div>
             </div>
-            {/* ... rest of header is same ... */}
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex-1 space-y-3">
               <div className="flex items-start gap-4 w-full">
-                
-                {/* JIRA Ref - Now on the left */}
                 <div className="w-32 flex-shrink-0">
                   <label className="text-xs font-bold text-[#5ABBCE] uppercase tracking-wider block mb-1">JIRA Ref</label>
-                  <input 
-                    type="text" 
-                    value={jiraRef} 
-                    onChange={(e) => setJiraRef(e.target.value)} 
-                    className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded px-3 py-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] w-full" 
-                    placeholder="PROJ-123" 
-                  />
+                  <input type="text" value={jiraRef} onChange={(e) => setJiraRef(e.target.value)} className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded px-3 py-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] w-full" placeholder="PROJ-123" />
                 </div>
-
-                {/* Project Name - Now on the right, reduced size */}
                 <div className="flex-1">
                   <label className="text-xs font-bold text-[#5ABBCE] uppercase tracking-wider block mb-1">Project Name</label>
-                  <input 
-                    type="text" 
-                    value={projectName} 
-                    onChange={(e) => setProjectName(e.target.value)} 
-                    className="text-sm font-bold text-slate-800 bg-white border border-slate-200 rounded px-3 py-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] w-full placeholder:text-slate-300" 
-                    placeholder="Enter Project Name" 
-                  />
+                  <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="text-sm font-bold text-slate-800 bg-white border border-slate-200 rounded px-3 py-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] w-full placeholder:text-slate-300" placeholder="Enter Project Name" />
                 </div>
-
               </div>
-
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                   <User size={14} className="text-slate-400"/> Owner: <span className="font-bold text-slate-700">{owner}</span>
                 </div>
-                <div className={`flex items-center gap-2 text-sm px-2 py-1 rounded-md border ${
-                  status === 'Approved' ? 'bg-green-50 border-green-100 text-green-700' : 
-                  status === 'Pending SPOE Check' ? 'bg-purple-50 border-purple-100 text-purple-700' :
-                  'bg-slate-50 border-slate-100 text-slate-500'
-                }`}>
+                <div className={`flex items-center gap-2 text-sm px-2 py-1 rounded-md border ${status === 'Approved' ? 'bg-green-50 border-green-100 text-green-700' : status === 'Pending SPOE Check' ? 'bg-purple-50 border-purple-100 text-purple-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                   <Shield size={14} /> Status: <span className="font-bold">{status}</span>
                 </div>
               </div>
@@ -506,10 +457,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        
-        {/* ONE-NOTE STYLE TABS */}
         <TabNavigation tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
-
         <div className="min-h-[400px]">
           
           {/* TAB 1: SUMMARY */}
@@ -595,7 +543,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
                         <td colSpan="2" className="pt-2 text-right text-slate-500 font-medium">Subtotal (Gross)</td>
                         <td className="pt-2 pr-2 text-right font-bold text-slate-800">{formatCurrency(totals.subtotal)}</td>
                       </tr>
-                      {/* Removed VAT Row */}
                       <tr>
                         <td colSpan="2" className="pt-4 text-right text-slate-800 font-bold text-lg">Grand Total Excl. VAT</td>
                         <td className="pt-4 pr-2 text-right font-bold text-emerald-600 text-lg">{formatCurrency(totals.grandTotal)}</td>
@@ -607,7 +554,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
             </div>
           )}
 
-          {/* TAB 2: SERVICE MENU (Renamed from Standard Service Menu) */}
+          {/* TABS 2-5 (Unchanged visually, omitted from snippet for brevity, see code box) */}
           {activeTab === 'standard' && (
             <section className="bg-teal-50/50 rounded-xl border border-teal-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="px-6 py-4 border-b border-teal-100 bg-teal-50 flex items-center justify-between">
@@ -635,7 +582,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
             </section>
           )}
 
-          {/* TAB 3: API SERVICES */}
           {activeTab === 'api' && (
             <section className="bg-amber-50/50 rounded-xl border border-amber-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="px-6 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
@@ -664,7 +610,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
             </section>
           )}
 
-          {/* TAB 4: ADMIN COSTS */}
           {activeTab === 'admin' && (
             <section className="bg-sky-50/50 rounded-xl border border-sky-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="px-6 py-4 border-b border-sky-100 bg-sky-50 flex items-center justify-between">
@@ -690,7 +635,6 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
             </section>
           )}
 
-          {/* TAB 5: TIME & MATERIALS */}
           {activeTab === 'tm' && (
             <section className="bg-emerald-50/50 rounded-xl border border-emerald-100 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="px-6 py-4 border-b border-emerald-100 bg-emerald-50 flex items-center justify-between">
@@ -784,12 +728,22 @@ export default function App() {
   const [user, setUser] = useState({ name: 'Test User', email: 'test@firstbaseit.com', role: 'Estimator', isSidebarOpen: false });
   const [savedEstimates, setSavedEstimates] = useState([]);
   const [currentEstimateData, setCurrentEstimateData] = useState(null);
+  
+  // NEW: State to hold global settings
+  const [appSettings, setAppSettings] = useState({ dailyRate: 600 });
 
   useEffect(() => {
+    // 1. Fetch estimates
     fetch('/api/estimates')
       .then(res => res.json())
       .then(data => setSavedEstimates(data))
       .catch(err => console.error("Error loading estimates:", err));
+
+    // 2. NEW: Fetch settings
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setAppSettings(data))
+      .catch(err => console.error("Error loading settings:", err));
   }, []);
 
   const setSidebarOpen = (isOpen) => {
@@ -812,7 +766,8 @@ export default function App() {
   };
 
   const handleCreateNew = () => {
-    setCurrentEstimateData(null); 
+    // NEW: Pass the global setting to new estimates!
+    setCurrentEstimateData({ globalDailyRate: appSettings.dailyRate }); 
     setView('estimate');
   };
 
@@ -823,7 +778,6 @@ export default function App() {
 
   const handleDeleteEstimate = async (id) => {
     if (confirm('Are you sure you want to delete this estimate?')) {
-      // 2. Tell the Backend to delete it
       try {
         await fetch(`/api/estimates/${id}`, { method: 'DELETE' });
         setSavedEstimates(savedEstimates.filter(e => e.id !== id));
@@ -837,7 +791,6 @@ export default function App() {
     try {
       const exists = savedEstimates.find(e => e.id === estimateData.id);
       if (exists) {
-        // 3. Tell the Backend to UPDATE (PUT) the existing estimate
         await fetch(`/api/estimates/${estimateData.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -845,7 +798,6 @@ export default function App() {
         });
         setSavedEstimates(savedEstimates.map(e => e.id === estimateData.id ? estimateData : e));
       } else {
-        // 4. Tell the Backend to CREATE (POST) a new estimate
         await fetch('/api/estimates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -858,11 +810,29 @@ export default function App() {
     }
   };
 
+  // NEW: Function to save the global daily rate to backend
+  const handleSaveSettings = async (newRate) => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dailyRate: newRate })
+      });
+      const data = await res.json();
+      setAppSettings(data);
+      return true; // Success
+    } catch (err) {
+      console.error("Failed to update settings:", err);
+      return false;
+    }
+  };
+
   const handleNavigate = (page) => {
       setSidebarOpen(false);
       if (page === 'create') handleCreateNew();
       else if (page === 'dashboard') setView('dashboard');
       else if (page === 'reports') setView('reports');
+      else if (page === 'settings') setView('settings'); // NEW Routing
   };
 
   // RENDER ROUTING
@@ -900,6 +870,20 @@ export default function App() {
             <ReportsView {...commonProps} savedEstimates={savedEstimates} />
         </>
       )
+  }
+
+  // NEW VIEW LOGIC
+  if (view === 'settings') {
+    return (
+      <>
+        <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
+        <SettingsView 
+          {...commonProps}
+          currentRate={appSettings.dailyRate}
+          onSaveRate={handleSaveSettings}
+        />
+      </>
+    );
   }
 
   if (view === 'estimate') {
