@@ -62,13 +62,14 @@ app.delete('/api/estimates/:id', (req, res) => {
 });
 // --- END API ROUTES ---
 
-// 1. Tell the server to share the public "dist" folder (where Vite puts your finished React code)
-app.use(express.static(join(__dirname, 'dist')));
+// Use process.cwd() to consistently find the 'dist' folder from the root of the project, 
+// even if server.js is located inside the 'src' folder!
+const distPath = join(process.cwd(), 'dist');
 
-// 2. The Catch-All Route
-// If a user types a specific URL, just send back the React index.html file
+app.use(express.static(distPath));
+
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
+  res.sendFile(join(distPath, 'index.html'));
 });
 
 // Start the engine!
