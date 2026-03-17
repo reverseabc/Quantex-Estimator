@@ -294,6 +294,76 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     setTimeout(() => setShowCopiedToast(false), 2500);
   };
 
+  const handleDownloadMandate = async () => {
+    try {
+      // 1. Prepare the "Flattened" list for the Word Template
+      const summaryItems = [
+        ...constants.filter(c => c.days > 0).map(c => ({
+          name: c.name,
+          type: 'Administration',
+          days: Number(c.days).toFixed(2),
+          total: formatCurrency(c.days * globalDailyRate)
+        })),
+        ...selectedStandardItems.map(item => ({
+          name: item.name,
+          type: 'Service Menu',
+          days: (item.price * (item.quantity || 1) / globalDailyRate).toFixed(2),
+          total: formatCurrency(item.price * (item.quantity || 1))
+        })),
+        ...selectedApiItems.map(item => ({
+          name: item.name,
+          type: 'API Service',
+          days: (item.days * (item.quantity || 1)).toFixed(2),
+          total: formatCurrency(item.days * (item.quantity || 1) * globalDailyRate)
+        })),
+        ...Object.values(tmSections).flatMap(s => s.items).filter(i => i.days > 0).map(item => ({
+          name: item.workItem,
+          type: 'Time & Materials',
+          days: Number(item.days).toFixed(2),
+          total: formatCurrency(item.days * globalDailyRate)
+        }))
+      ];
+
+      // 2. Load the template file from the /public folder
+      const response = await fetch('/mandate-template.docx');
+      if (!response.ok) throw new Error("Template not found");
+      const content = await response.arrayBuffer();
+
+      // 3. Initialize Docxtemplater dynamically
+      const PizZip = (await import('pizzip')).default;
+      const Docxtemplater = (await import('docxtemplater')).default;
+      const saveAs = (await import('file-saver')).saveAs;
+
+      const zip = new PizZip(content);
+      const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+      // 4. Set the data for the tags
+      doc.setData({
+        projectName,
+        jiraRef,
+        owner,
+        projectDate,
+        dailyRate: formatCurrency(globalDailyRate),
+        totalDays: formatDays(totals.totalDays),
+        baseTotal: formatCurrency(totals.baseTotal),
+        bufferPercent,
+        bufferAmount: formatCurrency(totals.bufferAmount),
+        subtotal: formatCurrency(totals.subtotal),
+        grandTotal: formatCurrency(totals.grandTotal),
+        summaryItems: summaryItems
+      });
+
+      // 5. Render and Download
+      doc.render();
+      const out = doc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      saveAs(out, `${projectName.replace(/\s+/g, '_')}_Mandate.docx`);
+
+    } catch (error) {
+      console.error('Error generating mandate:', error);
+      alert('Failed to generate mandate. Ensure mandate-template.docx is in the public folder.');
+    }
+  };
+
   // State Updates helpers
   const updateConstantDays = (id, days) => setConstants(constants.map(c => c.id === id ? { ...c, days: Number(days) } : c));
   const toggleStandardItem = (item) => {
@@ -438,6 +508,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
 
             <div className="flex items-end gap-2 pb-2">
               <button onClick={() => handleSaveProject()} className="p-2 bg-slate-100 hover:bg-[#5ABBCE]/10 text-slate-600 hover:text-[#5ABBCE] rounded-lg transition-colors border border-slate-200" title="Save Project"><Save size={20} /></button>
+              <button onClick={handleDownloadMandate} className="p-2 bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-purple-600 rounded-lg transition-colors border border-slate-200" title="Download Mandate (.docx)"><FileText size={20} /></button>
               <button onClick={handleSaveCsv} className="p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 rounded-lg transition-colors border border-slate-200" title="Export to Excel"><Download size={20} /></button>
               <button onClick={handleCopy} className="p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200" title="Copy to Clipboard"><Copy size={20} /></button>
             </div>
@@ -536,369 +607,4 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
                         <td className="pt-2 pr-2 text-right font-bold text-slate-800">{formatCurrency(totals.baseTotal)}</td>
                       </tr>
                       <tr>
-                        <td colSpan="2" className="pt-2 text-right text-slate-500 font-medium">Contingency Buffer ({bufferPercent}%)</td>
-                        <td className="pt-2 pr-2 text-right font-bold text-slate-800">{formatCurrency(totals.bufferAmount)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan="2" className="pt-2 text-right text-slate-500 font-medium">Subtotal (Gross)</td>
-                        <td className="pt-2 pr-2 text-right font-bold text-slate-800">{formatCurrency(totals.subtotal)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan="2" className="pt-4 text-right text-slate-800 font-bold text-lg">Grand Total Excl. VAT</td>
-                        <td className="pt-4 pr-2 text-right font-bold text-emerald-600 text-lg">{formatCurrency(totals.grandTotal)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* TABS 2-5 (Unchanged visually, omitted from snippet for brevity, see code box) */}
-          {activeTab === 'standard' && (
-            <section className="bg-teal-50/50 rounded-xl border border-teal-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="px-6 py-4 border-b border-teal-100 bg-teal-50 flex items-center justify-between">
-                <h2 className="font-bold text-lg text-teal-900 flex items-center gap-2"><Layers className="text-teal-500" size={20} /> Service Menu</h2>
-                <div className="text-xs font-semibold px-2 py-1 bg-white text-teal-700 rounded border border-teal-200">{formatCurrency(totals.standardMenuSum)}</div>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
-                {STANDARD_SERVICE_ITEMS.map(item => {
-                  const isSelected = selectedStandardItems.find(m => m.id === item.id);
-                  return (
-                    <button key={item.id} onClick={() => toggleStandardItem(item)} className={`flex flex-col p-4 rounded-lg border text-left transition-all relative ${isSelected ? 'bg-teal-50 border-teal-200 shadow-sm ring-1 ring-teal-100' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
-                      <div className="flex justify-between items-start w-full mb-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-500'}`}>{item.category}</span>{isSelected && <div className="bg-teal-500 text-white rounded-full p-0.5"><Check size={12} /></div>}</div>
-                      <span className={`font-semibold text-sm mb-1 ${isSelected ? 'text-teal-900' : 'text-slate-700'}`}>{item.name}</span>
-                      <span className={`text-sm font-bold mt-auto ${isSelected ? 'text-teal-600' : 'text-slate-400'}`}>{formatCurrency(item.price)}</span>
-                      {isSelected && (
-                        <div className="mt-3 flex items-center gap-2 bg-white/60 p-1.5 rounded border border-teal-100" onClick={(e) => e.stopPropagation()}>
-                            <label className="text-[10px] font-bold text-teal-700 uppercase">Qty:</label>
-                            <input type="number" min="1" value={isSelected.quantity || 1} onChange={(e) => updateStandardItemQuantity(item.id, e.target.value)} className="w-16 h-7 text-sm text-center border border-teal-200 rounded focus:ring-teal-500" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'api' && (
-            <section className="bg-amber-50/50 rounded-xl border border-amber-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="px-6 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
-                <h2 className="font-bold text-lg text-amber-900 flex items-center gap-2"><Server className="text-amber-500" size={20} /> API Service Menu</h2>
-                <div className="text-xs font-semibold px-2 py-1 bg-white text-amber-700 rounded border border-amber-200">{formatCurrency(totals.apiMenuSum)}</div>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
-                {API_SERVICE_ITEMS.map(item => {
-                  const isSelected = selectedApiItems.find(m => m.id === item.id);
-                  const calculatedPrice = item.days * globalDailyRate;
-                  return (
-                    <button key={item.id} onClick={() => toggleApiItem(item)} className={`flex flex-col p-4 rounded-lg border text-left transition-all relative ${isSelected ? 'bg-amber-50 border-amber-200 shadow-sm ring-1 ring-amber-100' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
-                      <div className="flex justify-between items-start w-full mb-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>{item.category}</span>{isSelected && <div className="bg-amber-500 text-white rounded-full p-0.5"><Check size={12} /></div>}</div>
-                      <span className={`font-semibold text-sm mb-1 ${isSelected ? 'text-amber-900' : 'text-slate-700'}`}>{item.name}</span>
-                      <span className={`text-sm font-bold mt-auto pt-2 ${isSelected ? 'text-amber-600' : 'text-slate-400'}`}>{formatCurrency(calculatedPrice)}</span>
-                      {isSelected && (
-                        <div className="mt-3 flex items-center gap-2 bg-white/60 p-1.5 rounded border border-amber-100" onClick={(e) => e.stopPropagation()}>
-                            <label className="text-[10px] font-bold text-amber-700 uppercase">Qty:</label>
-                            <input type="number" min="1" value={isSelected.quantity || 1} onChange={(e) => updateApiItemQuantity(item.id, e.target.value)} className="w-16 h-7 text-sm text-center border border-amber-200 rounded focus:ring-amber-500" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'admin' && (
-            <section className="bg-sky-50/50 rounded-xl border border-sky-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="px-6 py-4 border-b border-sky-100 bg-sky-50 flex items-center justify-between">
-                <h2 className="font-bold text-lg text-sky-900 flex items-center gap-2"><FileText className="text-[#5ABBCE]" size={20} /> Administration & Project Costs</h2>
-                <div className="text-xs font-semibold px-2 py-1 bg-white text-[#5ABBCE] rounded border border-[#5ABBCE]/20">{formatCurrency(totals.constantsSum)}</div>
-              </div>
-              <div className="p-6 space-y-5 bg-white">
-                {constants.map(item => (
-                  <div key={item.id} className="flex items-start justify-between gap-4 p-4 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-700 text-base">{item.name}</p>
-                      <p className="text-sm text-slate-400 mt-1">{item.description}</p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div><label className="block text-[10px] font-bold text-slate-400 uppercase text-center mb-1">Days</label>
-                      <input type="number" value={item.days} onChange={(e) => updateConstantDays(item.id, e.target.value)} className="w-20 px-3 py-2 bg-white border border-slate-200 rounded text-base text-center font-medium focus:ring-[#5ABBCE] focus:border-[#5ABBCE]" /></div>
-                      <div className="text-right w-24"><label className="block text-[10px] font-bold text-slate-400 uppercase text-right mb-1">Total</label>
-                      <span className="text-base font-bold text-slate-700">{formatCurrency((Number(item.days) || 0) * (Number(globalDailyRate) || 0))}</span></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'tm' && (
-            <section className="bg-emerald-50/50 rounded-xl border border-emerald-100 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="px-6 py-4 border-b border-emerald-100 bg-emerald-50 flex items-center justify-between">
-                <h2 className="font-bold text-lg text-emerald-900 flex items-center gap-2"><Clock className="text-emerald-500" size={20} /> Time & Materials</h2>
-                <div className="text-xs font-semibold px-2 py-1 bg-white text-emerald-700 rounded border border-emerald-200">{formatCurrency(totals.tmSum)}</div>
-              </div>
-              <div className="p-6 flex-1 space-y-8 bg-white">
-                {Object.entries(tmSections).map(([key, section]) => (
-                  <div key={key} className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.title}</h3>
-                        <button onClick={() => handleDeleteSection(key)} className="text-slate-300 hover:text-red-500 p-1 rounded-full hover:bg-red-50"><Trash2 size={12} /></button>
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-600">{formatCurrency(getSectionTotal(section.items))}</span>
-                    </div>
-                    <div className="space-y-3">
-                      {section.items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between gap-4 p-3 bg-slate-50 border border-slate-100 rounded-lg group transition-colors">
-                          <div className="flex-1">
-                             <input type="text" placeholder="Description..." value={item.workItem} onChange={(e) => updateTmRow(key, item.id, 'workItem', e.target.value)} className="w-full bg-transparent border-none p-0 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:ring-0" />
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase text-center mb-1">Days</label>
-                                <input type="number" value={item.days} onChange={(e) => updateTmRow(key, item.id, 'days', e.target.value)} className="w-20 px-3 py-1.5 bg-white border border-slate-200 rounded text-sm text-center font-medium focus:ring-[#5ABBCE] focus:border-[#5ABBCE]" />
-                            </div>
-                            <div className="text-right w-24">
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase text-right mb-1">Total</label>
-                                <span className="text-sm font-bold text-slate-700">{formatCurrency((Number(globalDailyRate) || 0) * (Number(item.days) || 0))}</span>
-                            </div>
-                            <div className="flex items-end h-full pb-1">
-                                <button onClick={() => removeTmRow(key, item.id)} className="text-slate-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={() => addTmRow(key)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-2 py-1 rounded flex items-center gap-1"><Plus size={12} /> Add Item</button>
-                  </div>
-                ))}
-                <div className="pt-4 border-t border-slate-200 mt-4">
-                  {isAddingSection ? (
-                    <div className="flex items-center gap-2"><input type="text" autoFocus placeholder="New Section Name" value={newSectionName} onChange={(e) => setNewSectionName(e.target.value)} className="flex-1 text-sm border-slate-300 rounded-md shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleAddSection()} /><button onClick={handleAddSection} className="bg-emerald-600 text-white p-2 rounded-md"><Check size={16} /></button><button onClick={() => setIsAddingSection(false)} className="bg-slate-200 text-slate-600 p-2 rounded-md"><X size={16} /></button></div>
-                  ) : (
-                    <button onClick={() => setIsAddingSection(true)} className="w-full py-2 border-2 border-dashed border-emerald-200 rounded-lg text-emerald-600 text-sm font-bold hover:bg-emerald-50 flex items-center justify-center gap-2"><Plus size={16} /> Add New Section</button>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              {status === 'Draft' && (
-                <button onClick={handleRequestSPOE} className="flex items-center gap-2 bg-[#5ABBCE] hover:brightness-95 text-white font-bold text-xs px-3 py-2 rounded-lg transition-all shadow-sm"><Send size={14} /> Request SPOE Check</button>
-              )}
-              {status === 'Pending SPOE Check' && user.role === 'Manager' && (
-                <button onClick={handleApproveSPOE} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors shadow-sm"><CheckCircle size={14} /> Approve SPOE</button>
-              )}
-            </div>
-            <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-bold text-slate-500 hidden sm:block">Buffer</label>
-                <div className="flex items-center bg-slate-100 rounded-lg p-1">
-                  <button onClick={() => setBufferPercent(Math.max(0, bufferPercent - 5))} className="px-3 py-1 hover:bg-white rounded shadow-sm text-sm font-bold text-slate-600">-</button>
-                  <span className="w-12 text-center text-sm font-bold text-slate-800">{bufferPercent}%</span>
-                  <button onClick={() => setBufferPercent(bufferPercent + 5)} className="px-3 py-1 hover:bg-white rounded shadow-sm text-sm font-bold text-slate-600">+</button>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-              <div className="text-right"><p className="text-xs text-slate-400 font-bold uppercase">Subtotal (Net)</p><p className="font-semibold text-slate-600">{formatCurrency(totals.subtotal)}</p></div>
-              <div className="text-right"><p className="text-xs text-slate-400 font-bold uppercase">Buffer ({bufferPercent}%)</p><p className="font-semibold text-slate-600">+ {formatCurrency(totals.bufferAmount)}</p></div>
-              <div className="bg-slate-900 text-white px-6 py-3 rounded-lg text-right min-w-[180px]"><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Grand Total Excl. VAT</p><p className="text-2xl font-bold leading-none">{formatCurrency(totals.grandTotal)}</p></div>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-export default function App() {
-  const [view, setView] = useState('dashboard'); 
-  const [user, setUser] = useState({ name: 'Test User', email: 'test@firstbaseit.com', role: 'Estimator', isSidebarOpen: false });
-  const [savedEstimates, setSavedEstimates] = useState([]);
-  const [currentEstimateData, setCurrentEstimateData] = useState(null);
-  
-  // NEW: State to hold global settings
-  const [appSettings, setAppSettings] = useState({ dailyRate: 600 });
-
-  useEffect(() => {
-    // 1. Fetch estimates
-    fetch('/api/estimates')
-      .then(res => res.json())
-      .then(data => setSavedEstimates(data))
-      .catch(err => console.error("Error loading estimates:", err));
-
-    // 2. NEW: Fetch settings
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => setAppSettings(data))
-      .catch(err => console.error("Error loading settings:", err));
-  }, []);
-
-  const setSidebarOpen = (isOpen) => {
-      setUser(prev => ({...prev, isSidebarOpen: isOpen}));
-  };
-
-  const handleSwitchRole = () => {
-    const newRole = user.role === 'Estimator' ? 'Manager' : 'Estimator';
-    setUser({ ...user, role: newRole });
-  };
-
-  const handleLogin = (userData) => {
-    setUser({ ...userData, role: 'Estimator', isSidebarOpen: false });
-    setView('dashboard');
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setView('login');
-  };
-
-  const handleCreateNew = () => {
-    // NEW: Pass the global setting to new estimates!
-    setCurrentEstimateData({ globalDailyRate: appSettings.dailyRate }); 
-    setView('estimate');
-  };
-
-  const handleOpenEstimate = (estimate) => {
-    setCurrentEstimateData(estimate);
-    setView('estimate');
-  };
-
-  const handleDeleteEstimate = async (id) => {
-    if (confirm('Are you sure you want to delete this estimate?')) {
-      try {
-        await fetch(`/api/estimates/${id}`, { method: 'DELETE' });
-        setSavedEstimates(savedEstimates.filter(e => e.id !== id));
-      } catch (err) {
-        console.error("Failed to delete:", err);
-      }
-    }
-  };
-
-  const handleSaveEstimate = async (estimateData) => {
-    try {
-      const exists = savedEstimates.find(e => e.id === estimateData.id);
-      if (exists) {
-        await fetch(`/api/estimates/${estimateData.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(estimateData)
-        });
-        setSavedEstimates(savedEstimates.map(e => e.id === estimateData.id ? estimateData : e));
-      } else {
-        await fetch('/api/estimates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(estimateData)
-        });
-        setSavedEstimates([estimateData, ...savedEstimates]);
-      }
-    } catch (err) {
-      console.error("Failed to save:", err);
-    }
-  };
-
-  // NEW: Function to save the global daily rate to backend
-  const handleSaveSettings = async (newRate) => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dailyRate: newRate })
-      });
-      const data = await res.json();
-      setAppSettings(data);
-      return true; // Success
-    } catch (err) {
-      console.error("Failed to update settings:", err);
-      return false;
-    }
-  };
-
-  const handleNavigate = (page) => {
-      setSidebarOpen(false);
-      if (page === 'create') handleCreateNew();
-      else if (page === 'dashboard') setView('dashboard');
-      else if (page === 'reports') setView('reports');
-      else if (page === 'settings') setView('settings'); // NEW Routing
-  };
-
-  // RENDER ROUTING
-  if (view === 'login') {
-    return <LoginView onLogin={handleLogin} />;
-  }
-
-  const commonProps = {
-      user: { ...user, setSidebarOpen, onLogout: handleLogout, onCreateNew: handleCreateNew, onChangeView: handleNavigate },
-      onMenuClick: () => setSidebarOpen(true)
-  };
-
-  if (view === 'dashboard') {
-    return (
-      <>
-        <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
-        <DashboardView 
-          {...commonProps}
-          savedEstimates={savedEstimates} 
-          onCreateNew={handleCreateNew} 
-          onOpenEstimate={handleOpenEstimate} 
-          onDeleteEstimate={handleDeleteEstimate}
-          onLogout={handleLogout}
-          onSwitchRole={handleSwitchRole}
-          onNavigateToReports={() => handleNavigate('reports')}
-        />
-      </>
-    );
-  }
-  
-  if (view === 'reports') {
-      return (
-        <>
-            <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
-            <ReportsView {...commonProps} savedEstimates={savedEstimates} />
-        </>
-      )
-  }
-
-  // NEW VIEW LOGIC
-  if (view === 'settings') {
-    return (
-      <>
-        <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
-        <SettingsView 
-          {...commonProps}
-          currentRate={appSettings.dailyRate}
-          onSaveRate={handleSaveSettings}
-        />
-      </>
-    );
-  }
-
-  if (view === 'estimate') {
-    return (
-      <>
-        <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
-        <Estimator 
-          {...commonProps}
-          initialData={currentEstimateData} 
-          onSave={handleSaveEstimate} 
-          onBack={() => setView('dashboard')} 
-        />
-      </>
-    );
-  }
-
-  return null;
-}
+                        <td colSpan="2" className="pt-2 text-right text-slate-500 font-medium">Contingency Buffer ({bufferPercent}
