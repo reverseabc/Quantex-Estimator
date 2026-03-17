@@ -161,3 +161,18 @@ Editor directories and files
 *.njsproj
 *.sln
 *.sw?
+
+local env files
+
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+SECURITY ADDITIONS
+
+Never commit environment variables or local database files
+
+.env
+data/users.json
+data/db.json
