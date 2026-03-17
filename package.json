@@ -10,15 +10,16 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "express": "^4.19.2",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "docxtemplater": "^3.40.0",
-    "file-saver": "^2.0.5",
-    "pizzip": "^3.1.7"
+    "docxtemplater": "^3.55.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.475.0",
+    "pizzip": "^3.1.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
