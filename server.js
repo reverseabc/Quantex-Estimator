@@ -1,15 +1,21 @@
-const express = require('express');
-const fs = require('fs').promises;
-const fsSync = require('fs'); // For synchronous checks during startup
-const path = require('path');
-const cors = require('cors');
-const crypto = require('crypto');
-const helmet = require('helmet');
+import express from 'express';
+import { promises as fs } from 'fs';
+import fsSync from 'fs'; // For synchronous checks during startup
+import path from 'path';
+import cors from 'cors';
+import crypto from 'crypto';
+import helmet from 'helmet';
+import { fileURLToPath } from 'url';
 
 // --- SECURITY IMPORTS ---
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+
+// Security Note: ES Modules do not have '__dirname' by default.
+// We must safely recreate it to ensure our disk paths are always absolute.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
