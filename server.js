@@ -104,6 +104,7 @@ const initDb = async () => {
         users: [{
           id: crypto.randomUUID(),
           username: "admin",
+          email: "admin@quantex.local", // Added so default user can log in via email
           passwordHash: hashedPassword,
           role: "Admin",
           isActive: true,
@@ -112,7 +113,7 @@ const initDb = async () => {
         }]
       };
       await fs.writeFile(USERS_DB_PATH, JSON.stringify(defaultUsers, null, 2));
-      console.log(`Default Admin created. Username: admin | Initial Password: ${initialPassword}`);
+      console.log(`Default Admin created. Username: admin | Email: admin@quantex.local | Initial Password: ${initialPassword}`);
       console.log('SECURITY WARNING: Log in and change this password immediately.');
     }
   } catch (err) {
@@ -124,11 +125,29 @@ const initDb = async () => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
+    
+    // The frontend might send the identifier as 'username' or 'email' depending on the input field name
+    const identifier = email || username;
+
+    if (!identifier) {
+      return res.status(400).json({ error: 'Username or email is required.' });
+    }
+
+    // Security Note: Input Validation (OWASP). If it contains '@', enforce strict email format.
+    if (identifier.includes('@')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(identifier)) {
+        return res.status(400).json({ error: 'Invalid email format provided.' });
+      }
+    }
+
     const usersData = await fs.readFile(USERS_DB_PATH, 'utf8');
     const { users } = JSON.parse(usersData);
     
-    const user = users.find(u => u.username === username);
+    // Find the user by comparing the identifier against both the username and the email fields
+    const user = users.find(u => u.username === identifier || u.email === identifier);
+    
     if (!user || !user.isActive) {
       return res.status(401).json({ error: 'Invalid credentials or inactive account' });
     }
