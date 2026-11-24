@@ -1,0 +1,9 @@
+name = "quantex-estimator"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "quantex-db"
+database_id = "f39a322a-b238-4702-8b00-8c1cdfa6b2ce"
