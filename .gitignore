@@ -176,3 +176,4 @@ Never commit environment variables or local database files
 .env
 data/users.json
 data/db.json
+.wrangler/
