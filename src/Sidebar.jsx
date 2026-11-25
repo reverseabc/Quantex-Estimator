@@ -1,5 +1,6 @@
 import { Plus, X, LogOut, Search, Home, BarChart3, Settings } from 'lucide-react';
 import React, { useState } from 'react';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * ------------------------------------------------------------------
@@ -78,6 +79,8 @@ export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
 
           {/* Footer */}
           <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+
+            <ThemeToggle />
 
             {/* NEW: Added onClick handler here to navigate to settings */}
             <button onClick={() => onNavigate('settings')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 hover:text-[#5ABBCE] rounded-lg transition-colors mb-2 group">

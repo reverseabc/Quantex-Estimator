@@ -2,6 +2,7 @@ import { FileText, Download, Coins, CheckCircle, Menu, BarChart3, Filter } from 
 import React, { useState, useMemo } from 'react';
 import { formatCurrency } from './App';
 import { api } from './api';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * ------------------------------------------------------------------
@@ -31,7 +32,8 @@ export const LoginView = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4"><ThemeToggle variant="icon" /></div>
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
         <div className="bg-white p-8 border-b border-slate-100 flex justify-center">
           {!imgError ? (
