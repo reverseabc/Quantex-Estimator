@@ -72,4 +72,80 @@ async function deleteEstimate(env, id) {
 
 async function getSettings(env) {
   const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'dailyRate'").first();
-  return json({ dailyRate: row ? Number(row.value) :
+  return json({ dailyRate: row ? Number(row.value) : DEFAULT_SETTINGS.dailyRate });
+}
+
+async function putSettings(env, body) {
+  const rate = Number(body?.dailyRate);
+  if (!Number.isFinite(rate) || rate < 0) return error('dailyRate must be a positive number', 400);
+  await env.DB.prepare(
+    `INSERT INTO settings (key, value) VALUES ('dailyRate', ?1)
+     ON CONFLICT(key) DO UPDATE SET value = ?1`
+  )
+    .bind(String(rate))
+    .run();
+  return json({ dailyRate: rate });
+}
+
+// ---------- ROUTER ----------
+
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, '');
+    const method = request.method;
+
+    // Non-API requests fall through to the static Vite build.
+    if (!path.startsWith('/api')) {
+      return env.ASSETS.fetch(request);
+    }
+
+    try {
+      if (path === '/api/estimates') {
+        if (method === 'GET') return await listEstimates(env);
+        if (method === 'POST') {
+          const body = await readJson(request);
+          const saved = await upsertEstimate(env, body);
+          return saved instanceof Response ? saved : json(saved, 201);
+        }
+        return error('Method not allowed', 405);
+      }
+
+      const match = path.match(/^\/api\/estimates\/([^/]+)$/);
+      if (match) {
+        const id = decodeURIComponent(match[1]);
+        if (method === 'PUT') {
+          const body = await readJson(request);
+          const saved = await upsertEstimate(env, body, id);
+          return saved instanceof Response ? saved : json(saved);
+        }
+        if (method === 'DELETE') return await deleteEstimate(env, id);
+        return error('Method not allowed', 405);
+      }
+
+      if (path === '/api/settings') {
+        if (method === 'GET') return await getSettings(env);
+        if (method === 'PUT') return await putSettings(env, await readJson(request));
+        return error('Method not allowed', 405);
+      }
+
+      if (path === '/api/health') {
+        await env.DB.prepare('SELECT 1').first();
+        return json({ ok: true });
+      }
+
+      return error('Not found', 404);
+    } catch (err) {
+      console.error('API error:', err);
+      return error('Internal server error', 500);
+    }
+  },
+};
