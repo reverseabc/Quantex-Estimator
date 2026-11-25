@@ -18,6 +18,8 @@ const json = (data, status = 200) =>
 
 const error = (message, status) => json({ error: message }, status);
 
+const toPence = (n) => Math.round((Number(n) || 0) * 100);
+
 // ---------- ESTIMATES ----------
 
 async function listEstimates(env) {
@@ -37,6 +39,29 @@ async function upsertEstimate(env, body, idFromPath) {
     id,
     lastModified: body.lastModified || new Date().toISOString(),
   };
+
+  // Business rule: an Approved estimate whose totals change goes back to Draft
+  // (SPOE check required again). Enforced here as well as in the UI.
+  if (estimate.status === 'Approved') {
+    const existingRow = await env.DB.prepare('SELECT data FROM estimates WHERE id = ?1')
+      .bind(id)
+      .first();
+    const existing = existingRow ? JSON.parse(existingRow.data) : null;
+    if (existing?.status === 'Approved') {
+      const baseline = existing.approvedGrandTotal ?? existing.grandTotal;
+      if (toPence(estimate.grandTotal) !== toPence(baseline)) {
+        estimate.status = 'Draft';
+        estimate.approvedGrandTotal = null;
+        estimate.approvedBy = null;
+        estimate.approvedAt = null;
+      } else {
+        // Keep the original approval record; the client can't overwrite it.
+        estimate.approvedGrandTotal = baseline;
+        estimate.approvedBy = existing.approvedBy ?? estimate.approvedBy ?? null;
+        estimate.approvedAt = existing.approvedAt ?? estimate.approvedAt ?? null;
+      }
+    }
+  }
 
   await env.DB.prepare(
     `INSERT INTO estimates (id, project_name, jira_ref, owner, status, grand_total, data, last_modified)

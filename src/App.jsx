@@ -96,6 +96,21 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
   const [globalDailyRate, setGlobalDailyRate] = useState(initialData?.globalDailyRate || 600);
   const [owner, setOwner] = useState(initialData?.owner || user?.name || 'Unknown');
   const [status, setStatus] = useState(initialData?.status || 'Draft'); 
+  // Snapshot of the totals at the point a Manager approved the estimate.
+  // Older approved estimates have no snapshot, so fall back to their saved grand total.
+  const [approval, setApproval] = useState(() => {
+    if (initialData?.approvedGrandTotal != null) {
+      return {
+        approvedGrandTotal: initialData.approvedGrandTotal,
+        approvedBy: initialData.approvedBy || null,
+        approvedAt: initialData.approvedAt || null
+      };
+    }
+    if (initialData?.status === 'Approved' && initialData?.grandTotal != null) {
+      return { approvedGrandTotal: initialData.grandTotal, approvedBy: null, approvedAt: null };
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState('summary');
   const [imgError, setImgError] = useState(false);
   
@@ -146,6 +161,13 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     return { constantsSum, standardMenuSum, apiMenuSum, tmSum, baseTotal, bufferAmount, subtotal, grandTotal, totalDays };
   }, [constants, selectedStandardItems, selectedApiItems, tmSections, bufferPercent, globalDailyRate]);
 
+  // True when an approved estimate's totals no longer match what the Manager approved.
+  const roundMoney = (n) => Math.round((Number(n) || 0) * 100);
+  const totalsChangedSinceApproval =
+    status === 'Approved' &&
+    approval?.approvedGrandTotal != null &&
+    roundMoney(totals.grandTotal) !== roundMoney(approval.approvedGrandTotal);
+
   // --- Workflow Actions ---
   const showNotification = (msg) => {
     setNotificationMsg(msg);
@@ -178,13 +200,29 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
 
   const handleApproveSPOE = () => {
     const newStatus = 'Approved';
+    const newApproval = {
+      approvedGrandTotal: totals.grandTotal,
+      approvedBy: user?.name || user?.email || 'Manager',
+      approvedAt: new Date().toISOString()
+    };
     setStatus(newStatus);
-    handleSaveProject(newStatus);
+    setApproval(newApproval);
+    handleSaveProject(newStatus, newApproval);
     showNotification('Estimate Approved');
   };
 
-  const handleSaveProject = (overrideStatus) => {
-    const currentStatus = overrideStatus && typeof overrideStatus === 'string' ? overrideStatus : status;
+  const handleSaveProject = (overrideStatus, approvalOverride) => {
+    let currentStatus = overrideStatus && typeof overrideStatus === 'string' ? overrideStatus : status;
+    let currentApproval = approvalOverride || approval;
+
+    // Approved estimates whose totals have changed must go back through SPOE.
+    if (currentStatus === 'Approved' && !approvalOverride && totalsChangedSinceApproval) {
+      currentStatus = 'Draft';
+      currentApproval = null;
+      setStatus('Draft');
+      setApproval(null);
+      showNotification('Totals changed since approval: status reverted to Draft. SPOE check required again.');
+    }
     
     const projectData = {
       id: initialData?.id || Math.random().toString(36).substr(2, 9),
@@ -200,6 +238,9 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       tmSections,
       bufferPercent,
       grandTotal: totals.grandTotal,
+      approvedGrandTotal: currentStatus === 'Approved' ? currentApproval?.approvedGrandTotal ?? null : null,
+      approvedBy: currentStatus === 'Approved' ? currentApproval?.approvedBy ?? null : null,
+      approvedAt: currentStatus === 'Approved' ? currentApproval?.approvedAt ?? null : null,
       lastModified: new Date().toISOString()
     };
     
@@ -503,6 +544,11 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
                 <div className={`flex items-center gap-2 text-sm px-2 py-1 rounded-md border ${status === 'Approved' ? 'bg-green-50 border-green-100 text-green-700' : status === 'Pending SPOE Check' ? 'bg-purple-50 border-purple-100 text-purple-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                   <Shield size={14} /> Status: <span className="font-bold">{status}</span>
                 </div>
+                {totalsChangedSinceApproval && (
+                  <div className="flex items-center gap-2 text-sm px-2 py-1 rounded-md border bg-amber-50 border-amber-200 text-amber-700">
+                    <AlertTriangle size={14} /> Totals changed since approval. Saving will revert this estimate to Draft.
+                  </div>
+                )}
               </div>
             </div>
 
