@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Settings, Building2, Save, CheckCircle, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Menu, Settings, Building2, Save, CheckCircle, ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react';
+import { isManagerLevel } from './api';
+import { ChangePasswordForm, UserManagement } from './AccountViews';
 
 export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => {
   const [rateInput, setRateInput] = useState(currentRate);
@@ -65,7 +67,7 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Building2 size={20} className="text-slate-400" /> Pricing & Rates
               </h2>
-              {user.role === 'Manager' ? (
+              {isManagerLevel(user.role) ? (
                 <span className="text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
                   Manager Access
                 </span>
@@ -91,12 +93,12 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
                         type="number" 
                         value={rateInput}
                         onChange={(e) => setRateInput(e.target.value)}
-                        disabled={user.role !== 'Manager' || isSaving}
+                        disabled={!isManagerLevel(user.role) || isSaving}
                         className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-lg font-bold text-slate-800 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] disabled:opacity-60 transition-all"
                       />
                     </div>
                     
-                    {user.role === 'Manager' && (
+                    {isManagerLevel(user.role) && (
                       <button 
                         onClick={handleSave}
                         disabled={isSaving || Number(rateInput) === Number(currentRate)}
@@ -114,6 +116,22 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
                   )}
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* USERS (Admin only) */}
+          {user.role === 'Admin' && <UserManagement currentUserId={user.id} />}
+
+          {/* MY ACCOUNT */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <KeyRound size={20} className="text-slate-400" /> My Account
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">{user.name} · {user.email} · {user.actualRole}</p>
+            </div>
+            <div className="p-6">
+              <ChangePasswordForm />
             </div>
           </section>
 

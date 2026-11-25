@@ -4,6 +4,8 @@ import { Sidebar } from './Sidebar';
 import { LoginView, ReportsView } from './LoginView';
 import { DashboardView } from './DashboardView';
 import { SettingsView } from './SettingsView'; // NEW IMPORT
+import { ForcedPasswordChangeView } from './AccountViews';
+import { api, ROLES, isManagerLevel } from './api';
 
 /**
  * ------------------------------------------------------------------
@@ -160,6 +162,16 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
 
     return { constantsSum, standardMenuSum, apiMenuSum, tmSum, baseTotal, bufferAmount, subtotal, grandTotal, totalDays };
   }, [constants, selectedStandardItems, selectedApiItems, tmSections, bufferPercent, globalDailyRate]);
+
+  // Keep status/approval in step with the server's copy after each save
+  // (the server can revert an approval or record who approved).
+  useEffect(() => {
+    if (!initialData?.id) return;
+    if (initialData.status) setStatus(initialData.status);
+    setApproval(initialData.status === 'Approved' && initialData.approvedGrandTotal != null
+      ? { approvedGrandTotal: initialData.approvedGrandTotal, approvedBy: initialData.approvedBy || null, approvedAt: initialData.approvedAt || null }
+      : null);
+  }, [initialData?.id, initialData?.status, initialData?.approvedGrandTotal]);
 
   // True when an approved estimate's totals no longer match what the Manager approved.
   const roundMoney = (n) => Math.round((Number(n) || 0) * 100);
@@ -814,7 +826,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
               {status === 'Draft' && (
                 <button onClick={handleRequestSPOE} className="flex items-center gap-2 bg-[#5ABBCE] hover:brightness-95 text-white font-bold text-xs px-3 py-2 rounded-lg transition-all shadow-sm"><Send size={14} /> Request SPOE Check</button>
               )}
-              {status === 'Pending SPOE Check' && user.role === 'Manager' && (
+              {status === 'Pending SPOE Check' && isManagerLevel(user.role) && (
                 <button onClick={handleApproveSPOE} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors shadow-sm"><CheckCircle size={14} /> Approve SPOE</button>
               )}
             </div>
@@ -840,49 +852,71 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
 };
 
 export default function App() {
-  const [view, setView] = useState('dashboard'); 
-  const [user, setUser] = useState({ name: 'Test User', email: 'test@firstbaseit.com', role: 'Estimator', isSidebarOpen: false });
+  const [view, setView] = useState('loading');
+  // user.role = role the UI is showing (Admins can "view as" another role);
+  // user.actualRole = the role the server enforces.
+  const [user, setUser] = useState(null);
   const [savedEstimates, setSavedEstimates] = useState([]);
   const [currentEstimateData, setCurrentEstimateData] = useState(null);
-  
-  // NEW: State to hold global settings
-  const [appSettings, setAppSettings] = useState({ dailyRate: 600 });
+  const [appSettings, setAppSettings] = useState({ dailyRate: 1267 });
 
+  const loadData = async () => {
+    try {
+      const [estimates, settings] = await Promise.all([api('/api/estimates'), api('/api/settings')]);
+      setSavedEstimates(estimates);
+      setAppSettings(settings);
+    } catch (err) {
+      console.error('Error loading data:', err);
+    }
+  };
+
+  const startSession = (me) => {
+    setUser({ ...me, actualRole: me.role, isSidebarOpen: false });
+    if (me.mustChangePassword) {
+      setView('change-password');
+    } else {
+      setView('dashboard');
+      loadData();
+    }
+  };
+
+  const resetToLogin = () => {
+    setUser(null);
+    setSavedEstimates([]);
+    setCurrentEstimateData(null);
+    setView('login');
+  };
+
+  // On first load, resume an existing session if there is one.
   useEffect(() => {
-    // 1. Fetch estimates
-    fetch('/api/estimates')
-      .then(res => res.json())
-      .then(data => setSavedEstimates(data))
-      .catch(err => console.error("Error loading estimates:", err));
-
-    // 2. NEW: Fetch settings
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => setAppSettings(data))
-      .catch(err => console.error("Error loading settings:", err));
+    api('/api/auth/me').then(startSession).catch(resetToLogin);
+    window.addEventListener('qx:unauthorized', resetToLogin);
+    return () => window.removeEventListener('qx:unauthorized', resetToLogin);
   }, []);
 
   const setSidebarOpen = (isOpen) => {
       setUser(prev => ({...prev, isSidebarOpen: isOpen}));
   };
 
+  // Admins can preview the UI as each role. The server still applies their real role.
   const handleSwitchRole = () => {
-    const newRole = user.role === 'Estimator' ? 'Manager' : 'Estimator';
-    setUser({ ...user, role: newRole });
+    if (user.actualRole !== 'Admin') return;
+    const next = ROLES[(ROLES.indexOf(user.role) + 1) % ROLES.length];
+    setUser({ ...user, role: next });
   };
 
-  const handleLogin = (userData) => {
-    setUser({ ...userData, role: 'Estimator', isSidebarOpen: false });
-    setView('dashboard');
-  };
+  const handleLogin = (me) => startSession(me);
 
-  const handleLogout = () => {
-    setUser(null);
-    setView('login');
+  const handleLogout = async () => {
+    try {
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+    resetToLogin();
   };
 
   const handleCreateNew = () => {
-    // NEW: Pass the global setting to new estimates!
     setCurrentEstimateData({ globalDailyRate: appSettings.dailyRate }); 
     setView('estimate');
   };
@@ -895,10 +929,10 @@ export default function App() {
   const handleDeleteEstimate = async (id) => {
     if (confirm('Are you sure you want to delete this estimate?')) {
       try {
-        await fetch(`/api/estimates/${id}`, { method: 'DELETE' });
+        await api(`/api/estimates/${encodeURIComponent(id)}`, { method: 'DELETE' });
         setSavedEstimates(savedEstimates.filter(e => e.id !== id));
       } catch (err) {
-        console.error("Failed to delete:", err);
+        alert(`Delete failed: ${err.message}`);
       }
     }
   };
@@ -906,39 +940,28 @@ export default function App() {
   const handleSaveEstimate = async (estimateData) => {
     try {
       const exists = savedEstimates.find(e => e.id === estimateData.id);
-      if (exists) {
-        await fetch(`/api/estimates/${estimateData.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(estimateData)
-        });
-        setSavedEstimates(savedEstimates.map(e => e.id === estimateData.id ? estimateData : e));
-      } else {
-        await fetch('/api/estimates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(estimateData)
-        });
-        setSavedEstimates([estimateData, ...savedEstimates]);
-      }
+      // Use the server's copy: it may have adjusted status or approval details.
+      const saved = exists
+        ? await api(`/api/estimates/${encodeURIComponent(estimateData.id)}`, { method: 'PUT', body: estimateData })
+        : await api('/api/estimates', { method: 'POST', body: estimateData });
+      setSavedEstimates(list => exists
+        ? list.map(e => e.id === saved.id ? saved : e)
+        : [saved, ...list]);
+      setCurrentEstimateData(saved);
+      return saved;
     } catch (err) {
-      console.error("Failed to save:", err);
+      alert(`Save failed: ${err.message}`);
+      return null;
     }
   };
 
-  // NEW: Function to save the global daily rate to backend
   const handleSaveSettings = async (newRate) => {
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dailyRate: newRate })
-      });
-      const data = await res.json();
+      const data = await api('/api/settings', { method: 'PUT', body: { dailyRate: newRate } });
       setAppSettings(data);
-      return true; // Success
+      return true;
     } catch (err) {
-      console.error("Failed to update settings:", err);
+      alert(`Could not update settings: ${err.message}`);
       return false;
     }
   };
@@ -952,8 +975,22 @@ export default function App() {
   };
 
   // RENDER ROUTING
-  if (view === 'login') {
+  if (view === 'loading') {
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-400 text-sm">Loading...</div>;
+  }
+
+  if (view === 'login' || !user) {
     return <LoginView onLogin={handleLogin} />;
+  }
+
+  if (view === 'change-password' || user.mustChangePassword) {
+    return (
+      <ForcedPasswordChangeView
+        user={user}
+        onLogout={handleLogout}
+        onChanged={(me) => startSession({ ...me, mustChangePassword: false })}
+      />
+    );
   }
 
   const commonProps = {

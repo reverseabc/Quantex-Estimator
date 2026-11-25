@@ -1,6 +1,7 @@
 import { Plus, Trash2, Calendar, FileText, LogOut, LayoutGrid, Search, User, AlertCircle, Menu, BarChart3, Tag } from 'lucide-react';
 import React, { useState } from 'react';
 import { formatCurrency } from './App';
+import { isManagerLevel } from './api';
 
 /**
  * ------------------------------------------------------------------
@@ -52,15 +53,24 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
           </div>
 
           <div className="flex items-center gap-4">
-            {/* ROLE SWITCHER FOR TESTING */}
-            <button
-              onClick={onSwitchRole}
-              className={`text-xs px-3 py-1 rounded-full border font-bold transition-all ${user.role === 'Manager'
-                  ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
-                  : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'}`}
-            >
-              Role: {user.role} (Switch)
-            </button>
+            {/* VIEW-AS SWITCHER: Admins only, for testing other roles without re-logging in */}
+            {user.actualRole === 'Admin' ? (
+              <button
+                onClick={onSwitchRole}
+                title="Admins can preview the app as each role. Server permissions still follow your real role."
+                className={`text-xs px-3 py-1 rounded-full border font-bold transition-all ${user.role === 'Admin'
+                    ? 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
+                    : user.role === 'Manager'
+                    ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
+                    : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'}`}
+              >
+                View as: {user.role} (Switch)
+              </button>
+            ) : (
+              <span className="text-xs px-3 py-1 rounded-full border font-bold bg-slate-100 text-slate-600 border-slate-200">
+                Role: {user.role}
+              </span>
+            )}
 
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-bold text-slate-700">{user.name}</span>
@@ -79,7 +89,7 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
       <main className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Manager Pending Alert */}
-        {user.role === 'Manager' && (
+        {isManagerLevel(user.role) && (
           <div className="mb-8">
             <div className="bg-purple-50 border border-purple-100 rounded-xl p-1 flex p-1 gap-2">
               <button

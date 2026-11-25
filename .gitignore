@@ -177,3 +177,6 @@ Never commit environment variables or local database files
 data/users.json
 data/db.json
 .wrangler/
+
+# Admin seed output (contains a password hash)
+seed-admin.sql

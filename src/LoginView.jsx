@@ -1,6 +1,7 @@
 import { FileText, Download, Coins, CheckCircle, Menu, BarChart3, Filter } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { formatCurrency } from './App';
+import { api } from './api';
 
 /**
  * ------------------------------------------------------------------
@@ -12,18 +13,21 @@ export const LoginView = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const userPart = email.split('@')[0] || 'User';
-      const formattedName = userPart.charAt(0).toUpperCase() + userPart.slice(1);
-      // Default to Estimator on login
-      onLogin({ email, name: formattedName, role: 'Estimator' });
+    setErrorMsg('');
+    try {
+      const me = await api('/api/auth/login', { method: 'POST', body: { email, password } });
+      setPassword('');
+      onLogin(me);
+    } catch (err) {
+      setErrorMsg(err.message || 'Sign in failed.');
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -68,6 +72,10 @@ export const LoginView = ({ onLogin }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)} />
             </div>
+
+            {errorMsg && (
+              <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{errorMsg}</p>
+            )}
 
             <button
               type="submit"
