@@ -9,4 +9,4 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "quantex-db"
-database_id = "39a322a-b238-4702-8b00-8c1cdfa6b2ce"
+database_id = "f39a322a-b238-4702-8b00-8c1cdfa6b2ce"
