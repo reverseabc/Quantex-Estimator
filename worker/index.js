@@ -12,6 +12,8 @@
  *   Admin     - + manage users
  */
 
+import { contentFingerprint, PENDING_STATUS } from '../shared/estimateContent.js';
+
 const DEFAULT_SETTINGS = { dailyRate: 1267 };
 const ROLES = ['Estimator', 'Manager', 'Admin'];
 const SESSION_COOKIE = 'qx_session';
@@ -327,6 +329,21 @@ async function upsertEstimate(env, body, user, idFromPath) {
 
   const existingRow = await env.DB.prepare('SELECT data FROM estimates WHERE id = ?1').bind(id).first();
   const existing = existingRow ? JSON.parse(existingRow.data) : null;
+
+  // BL-04: once submitted for SPOE check, the reviewed content (rate, buffer and every
+  // line item) is frozen. Any change to it sends the estimate back to Draft, and a
+  // Manager can only approve the exact version that was submitted.
+  const pendingContentChanged =
+    existing?.status === PENDING_STATUS && contentFingerprint(estimate) !== contentFingerprint(existing);
+  if (pendingContentChanged) {
+    if (estimate.status === 'Approved') {
+      return error(
+        'This estimate has changed since it was submitted for SPOE check. Reload it and review again.',
+        409
+      );
+    }
+    if (estimate.status === PENDING_STATUS) estimate.status = 'Draft';
+  }
 
   if (estimate.status === 'Approved') {
     if (existing?.status === 'Approved') {

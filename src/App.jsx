@@ -6,6 +6,7 @@ import { DashboardView } from './DashboardView';
 import { SettingsView } from './SettingsView'; // NEW IMPORT
 import { ForcedPasswordChangeView } from './AccountViews';
 import { api, ROLES, isManagerLevel } from './api';
+import { contentFingerprint, PENDING_STATUS } from '../shared/estimateContent.js';
 
 /**
  * ------------------------------------------------------------------
@@ -173,6 +174,17 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       : null);
   }, [initialData?.id, initialData?.status, initialData?.approvedGrandTotal]);
 
+  // BL-04: true when a Pending SPOE Check estimate's line items, rate or buffer differ
+  // from the version that was submitted (the server enforces the same rule).
+  const pendingBaseline = useMemo(
+    () => (initialData?.status === PENDING_STATUS ? contentFingerprint(initialData) : null),
+    [initialData]
+  );
+  const contentChangedSincePending =
+    status === PENDING_STATUS &&
+    pendingBaseline != null &&
+    contentFingerprint({ globalDailyRate, bufferPercent, constants, selectedStandardItems, selectedApiItems, tmSections }) !== pendingBaseline;
+
   // True when an approved estimate's totals no longer match what the Manager approved.
   const roundMoney = (n) => Math.round((Number(n) || 0) * 100);
   const totalsChangedSinceApproval =
@@ -210,7 +222,11 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     executeSPOEUpdate();
   };
 
-  const handleApproveSPOE = () => {
+  const handleApproveSPOE = async () => {
+    if (contentChangedSincePending) {
+      showNotification('Items changed since the SPOE check was requested. Save to return it to Draft, or reload to review the submitted version.');
+      return;
+    }
     const newStatus = 'Approved';
     const newApproval = {
       approvedGrandTotal: totals.grandTotal,
@@ -219,7 +235,13 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     };
     setStatus(newStatus);
     setApproval(newApproval);
-    handleSaveProject(newStatus, newApproval);
+    const saved = await handleSaveProject(newStatus, newApproval);
+    if (!saved) {
+      // Server refused (e.g. the estimate changed since submission): undo the local approval.
+      setStatus(PENDING_STATUS);
+      setApproval(null);
+      return;
+    }
     showNotification('Estimate Approved');
   };
 
@@ -234,6 +256,13 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       setStatus('Draft');
       setApproval(null);
       showNotification('Totals changed since approval: status reverted to Draft. SPOE check required again.');
+    }
+
+    // Pending estimates whose items have changed must be resubmitted for SPOE.
+    if (currentStatus === PENDING_STATUS && !overrideStatus && contentChangedSincePending) {
+      currentStatus = 'Draft';
+      setStatus('Draft');
+      showNotification('Items changed after the SPOE check was requested: status reverted to Draft. Request the SPOE check again.');
     }
     
     const projectData = {
@@ -256,11 +285,12 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       lastModified: new Date().toISOString()
     };
     
-    onSave(projectData);
+    const result = onSave(projectData);
     if (!overrideStatus || typeof overrideStatus !== 'string') {
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2500);
     }
+    return result;
   };
 
   const handleSaveCsv = () => {
@@ -556,6 +586,11 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
                 <div className={`flex items-center gap-2 text-sm px-2 py-1 rounded-md border ${status === 'Approved' ? 'bg-green-50 border-green-100 text-green-700' : status === 'Pending SPOE Check' ? 'bg-purple-50 border-purple-100 text-purple-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                   <Shield size={14} /> Status: <span className="font-bold">{status}</span>
                 </div>
+                {contentChangedSincePending && (
+                  <div className="flex items-center gap-2 text-sm px-2 py-1 rounded-md border bg-amber-50 border-amber-200 text-amber-700">
+                    <AlertTriangle size={14} /> Items changed since the SPOE check was requested. Saving will revert this estimate to Draft.
+                  </div>
+                )}
                 {totalsChangedSinceApproval && (
                   <div className="flex items-center gap-2 text-sm px-2 py-1 rounded-md border bg-amber-50 border-amber-200 text-amber-700">
                     <AlertTriangle size={14} /> Totals changed since approval. Saving will revert this estimate to Draft.
