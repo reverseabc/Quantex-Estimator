@@ -20,6 +20,8 @@ const PBKDF2_ITERATIONS = 100000; // Workers' maximum; must match scripts/create
 const MIN_PASSWORD_LENGTH = 12;
 // Used when the email doesn't exist, so failed logins take the same time either way.
 const DUMMY_HASH = `pbkdf2$${PBKDF2_ITERATIONS}$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`;
+// Login rate limits (see [[ratelimits]] in wrangler.toml). Window is 60 seconds.
+const LOGIN_RETRY_AFTER_SECONDS = 60;
 
 // ---------- RESPONSES ----------
 
@@ -141,11 +143,32 @@ const publicUser = (row) => ({
 
 // ---------- AUTH ROUTES ----------
 
+// BL-03: throttle password guessing. Two limits, both checked before any hashing:
+//   - per client IP  (stops one machine hammering many accounts)
+//   - per email      (stops a distributed attack on one account)
+// Bindings are optional so `vite dev` / tests without them still work.
+async function loginRateLimited(request, env, email) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const checks = [];
+  if (env.LOGIN_IP_LIMITER) checks.push(env.LOGIN_IP_LIMITER.limit({ key: `login-ip:${ip}` }));
+  if (env.LOGIN_EMAIL_LIMITER) checks.push(env.LOGIN_EMAIL_LIMITER.limit({ key: `login-email:${email}` }));
+  const results = await Promise.all(checks);
+  return results.some((r) => !r.success);
+}
+
 async function login(request, env) {
   const body = await readJson(request);
   const email = String(body?.email || '').trim().toLowerCase();
   const password = String(body?.password || '');
   if (!email || !password) return error('Email and password are required.', 400);
+
+  if (await loginRateLimited(request, env, email)) {
+    return json(
+      { error: 'Too many sign-in attempts. Please wait a minute and try again.' },
+      429,
+      { 'Retry-After': String(LOGIN_RETRY_AFTER_SECONDS) }
+    );
+  }
 
   const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?1').bind(email).first();
   // Always run a hash so response time doesn't reveal whether the email exists.
@@ -153,7 +176,12 @@ async function login(request, env) {
     ? await verifyPassword(password, row.password_hash)
     : (await verifyPassword(password, DUMMY_HASH), false);
 
-  if (!row || !ok || !row.is_active) return error('Invalid email or password.', 401);
+  if (!row || !ok) return error('Invalid email or password.', 401);
+  // BL-01: only reveal deactivation once the password is proven correct,
+  // so this can't be used to discover which emails belong to deactivated accounts.
+  if (!row.is_active) {
+    return error('Your account has been deactivated. Please contact your Quantex administrator.', 403);
+  }
 
   const token = await createSession(env, row.id);
   return json(publicUser(row), 200, { 'Set-Cookie': sessionCookie(token, request, SESSION_HOURS * 3600) });

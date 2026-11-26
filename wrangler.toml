@@ -14,3 +14,22 @@ run_worker_first = ["/api/*"]
 binding = "DB"
 database_name = "quantex-db"
 database_id = "f39a322a-b238-4702-8b00-8c1cdfa6b2ce"
+
+# BL-03: login rate limits (Workers Rate Limiting binding).
+# Limits are per Cloudflare location and approximate - fine for throttling guessing.
+# namespace_id just needs to be a unique positive integer within the account.
+[[ratelimits]]
+name = "LOGIN_IP_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[ratelimits]]
+name = "LOGIN_EMAIL_LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
