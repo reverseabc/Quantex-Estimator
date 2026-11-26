@@ -347,10 +347,11 @@ async function upsertEstimate(env, body, user, idFromPath) {
 
   if (estimate.status === 'Approved') {
     if (existing?.status === 'Approved') {
-      // Business rule: an Approved estimate whose totals change goes back to Draft
-      // (SPOE check required again).
+      // Business rule: an Approved estimate whose totals OR items change goes back to
+      // Draft (SPOE check required again). Header-only edits keep the approval.
       const baseline = existing.approvedGrandTotal ?? existing.grandTotal;
-      if (toPence(estimate.grandTotal) !== toPence(baseline)) {
+      const contentChanged = contentFingerprint(estimate) !== contentFingerprint(existing);
+      if (contentChanged || toPence(estimate.grandTotal) !== toPence(baseline)) {
         estimate.status = 'Draft';
         estimate.approvedGrandTotal = null;
         estimate.approvedBy = null;
@@ -362,8 +363,12 @@ async function upsertEstimate(env, body, user, idFromPath) {
         estimate.approvedAt = existing.approvedAt ?? null;
       }
     } else {
-      // New approval: only Managers / Admins, and the server records who and when.
+      // New approval: only Managers / Admins, only from Pending SPOE Check,
+      // and the server records who and when.
       if (!isManagerLevel(user)) return error('Only a Manager can approve an estimate.', 403);
+      if (existing?.status !== PENDING_STATUS) {
+        return error('An SPOE check must be requested before this estimate can be approved.', 409);
+      }
       estimate.approvedGrandTotal = estimate.grandTotal;
       estimate.approvedBy = user.name;
       estimate.approvedAt = new Date().toISOString();

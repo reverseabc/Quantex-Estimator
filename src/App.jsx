@@ -185,12 +185,19 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
     pendingBaseline != null &&
     contentFingerprint({ globalDailyRate, bufferPercent, constants, selectedStandardItems, selectedApiItems, tmSections }) !== pendingBaseline;
 
-  // True when an approved estimate's totals no longer match what the Manager approved.
+  // True when an approved estimate's totals or items no longer match what the Manager
+  // approved (the server enforces the same rule).
   const roundMoney = (n) => Math.round((Number(n) || 0) * 100);
+  const approvedBaseline = useMemo(
+    () => (initialData?.status === 'Approved' ? contentFingerprint(initialData) : null),
+    [initialData]
+  );
   const totalsChangedSinceApproval =
     status === 'Approved' &&
-    approval?.approvedGrandTotal != null &&
-    roundMoney(totals.grandTotal) !== roundMoney(approval.approvedGrandTotal);
+    ((approval?.approvedGrandTotal != null &&
+      roundMoney(totals.grandTotal) !== roundMoney(approval.approvedGrandTotal)) ||
+      (approvedBaseline != null &&
+        contentFingerprint({ globalDailyRate, bufferPercent, constants, selectedStandardItems, selectedApiItems, tmSections }) !== approvedBaseline));
 
   // --- Workflow Actions ---
   const showNotification = (msg) => {
@@ -255,7 +262,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
       currentApproval = null;
       setStatus('Draft');
       setApproval(null);
-      showNotification('Totals changed since approval: status reverted to Draft. SPOE check required again.');
+      showNotification('Items or totals changed since approval: status reverted to Draft. SPOE check required again.');
     }
 
     // Pending estimates whose items have changed must be resubmitted for SPOE.
@@ -593,7 +600,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
                 )}
                 {totalsChangedSinceApproval && (
                   <div className="flex items-center gap-2 text-sm px-2 py-1 rounded-md border bg-amber-50 border-amber-200 text-amber-700">
-                    <AlertTriangle size={14} /> Totals changed since approval. Saving will revert this estimate to Draft.
+                    <AlertTriangle size={14} /> Items or totals changed since approval. Saving will revert this estimate to Draft.
                   </div>
                 )}
               </div>
