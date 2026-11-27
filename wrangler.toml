@@ -27,7 +27,7 @@ namespace_id = "1001"
   period = 60
 
 [[ratelimits]]
-name = "LOGIN_EMAIL_LIMITER"
+name = "LOGIN_USER_LIMITER"
 namespace_id = "1002"
 
   [ratelimits.simple]

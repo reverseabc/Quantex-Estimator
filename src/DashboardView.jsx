@@ -79,7 +79,7 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
 
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-bold text-slate-700">{user.name}</span>
-              <span className="text-xs text-slate-500">{user.email}</span>
+              <span className="text-xs text-slate-500">{user.username || user.email}</span>
             </div>
             <div className="h-8 w-8 rounded-full bg-[#5ABBCE]/20 text-[#5ABBCE] flex items-center justify-center font-bold">
               {user.name.charAt(0).toUpperCase()}

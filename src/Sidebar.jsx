@@ -108,7 +108,7 @@ export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-700 truncate">{user.name}</p>
-                <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                <p className="text-xs text-slate-500 truncate">{user.username || user.email} · {user.actualRole}</p>
               </div>
               <button onClick={onLogout} className="text-slate-400 hover:text-red-500" title="Logout">
                 <LogOut size={18} />

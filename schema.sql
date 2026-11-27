@@ -1,13 +1,26 @@
+-- Fresh-install schema (matches the live DB after migrations 0002 and 0003).
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE,
+  username TEXT NOT NULL,
+  email TEXT,
+  name TEXT,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'User',
+  role TEXT NOT NULL DEFAULT 'Estimator',
   is_active INTEGER NOT NULL DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
   created_by TEXT,
   created_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_role ON users(email, role);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
 CREATE TABLE IF NOT EXISTS estimates (
   id TEXT PRIMARY KEY,

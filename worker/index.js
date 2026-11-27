@@ -3,7 +3,8 @@
  * Serves /api/* from D1 (binding: DB). Everything else is served from ./dist
  * by the [assets] config in wrangler.toml.
  *
- * Auth: email + password, PBKDF2-SHA256 hashes, opaque session tokens stored
+ * Auth: username + password (usernames unique; one email may hold one account per
+ * role), PBKDF2-SHA256 hashes, opaque session tokens stored
  * (hashed) in D1 and sent to the browser as an HttpOnly cookie.
  *
  * Roles (BL-06: Admin is a separate role, not a step above Manager):
@@ -21,7 +22,10 @@ const SESSION_COOKIE = 'qx_session';
 const SESSION_HOURS = 8;
 const PBKDF2_ITERATIONS = 100000; // Workers' maximum; must match scripts/create-admin.mjs
 const MIN_PASSWORD_LENGTH = 12;
-// Used when the email doesn't exist, so failed logins take the same time either way.
+// Usernames: 3-64 chars, lowercase letters, digits and . _ - @ (so an email works as one).
+const USERNAME_RE = /^[a-z0-9._@-]{3,64}$/;
+const normaliseUsername = (v) => String(v || '').trim().toLowerCase();
+// Used when the username doesn't exist, so failed logins take the same time either way.
 const DUMMY_HASH = `pbkdf2$${PBKDF2_ITERATIONS}$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`;
 // Login rate limits (see [[ratelimits]] in wrangler.toml). Window is 60 seconds.
 const LOGIN_RETRY_AFTER_SECONDS = 60;
@@ -124,7 +128,7 @@ async function getSessionUser(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (!token) return null;
   const row = await env.DB.prepare(
-    `SELECT u.id, u.name, u.email, u.role, u.is_active, u.must_change_password, s.expires_at
+    `SELECT u.id, u.username, u.name, u.email, u.role, u.is_active, u.must_change_password, s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ?1`
   )
@@ -136,7 +140,8 @@ async function getSessionUser(request, env) {
 
 const publicUser = (row) => ({
   id: row.id,
-  name: row.name || row.email,
+  username: row.username,
+  name: row.name || row.username,
   email: row.email,
   role: row.role,
   isActive: !!row.is_active,
@@ -148,24 +153,25 @@ const publicUser = (row) => ({
 
 // BL-03: throttle password guessing. Two limits, both checked before any hashing:
 //   - per client IP  (stops one machine hammering many accounts)
-//   - per email      (stops a distributed attack on one account)
+//   - per username   (stops a distributed attack on one account)
 // Bindings are optional so `vite dev` / tests without them still work.
-async function loginRateLimited(request, env, email) {
+async function loginRateLimited(request, env, username) {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const checks = [];
   if (env.LOGIN_IP_LIMITER) checks.push(env.LOGIN_IP_LIMITER.limit({ key: `login-ip:${ip}` }));
-  if (env.LOGIN_EMAIL_LIMITER) checks.push(env.LOGIN_EMAIL_LIMITER.limit({ key: `login-email:${email}` }));
+  if (env.LOGIN_USER_LIMITER) checks.push(env.LOGIN_USER_LIMITER.limit({ key: `login-user:${username}` }));
   const results = await Promise.all(checks);
   return results.some((r) => !r.success);
 }
 
 async function login(request, env) {
   const body = await readJson(request);
-  const email = String(body?.email || '').trim().toLowerCase();
+  // `email` accepted for older cached frontends; existing usernames equal the email anyway.
+  const username = normaliseUsername(body?.username ?? body?.email);
   const password = String(body?.password || '');
-  if (!email || !password) return error('Email and password are required.', 400);
+  if (!username || !password) return error('Username and password are required.', 400);
 
-  if (await loginRateLimited(request, env, email)) {
+  if (await loginRateLimited(request, env, username)) {
     return json(
       { error: 'Too many sign-in attempts. Please wait a minute and try again.' },
       429,
@@ -173,15 +179,15 @@ async function login(request, env) {
     );
   }
 
-  const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?1').bind(email).first();
-  // Always run a hash so response time doesn't reveal whether the email exists.
+  const row = await env.DB.prepare('SELECT * FROM users WHERE username = ?1').bind(username).first();
+  // Always run a hash so response time doesn't reveal whether the username exists.
   const ok = row
     ? await verifyPassword(password, row.password_hash)
     : (await verifyPassword(password, DUMMY_HASH), false);
 
-  if (!row || !ok) return error('Invalid email or password.', 401);
+  if (!row || !ok) return error('Invalid username or password.', 401);
   // BL-01: only reveal deactivation once the password is proven correct,
-  // so this can't be used to discover which emails belong to deactivated accounts.
+  // so this can't be used to discover which usernames belong to deactivated accounts.
   if (!row.is_active) {
     return error('Your account has been deactivated. Please contact your Quantex administrator.', 403);
   }
@@ -226,7 +232,7 @@ async function changePassword(request, env, user) {
 
 async function listUsers(env) {
   const { results } = await env.DB.prepare(
-    'SELECT id, name, email, role, is_active, must_change_password, created_at FROM users ORDER BY name COLLATE NOCASE'
+    'SELECT id, username, name, email, role, is_active, must_change_password, created_at FROM users ORDER BY name COLLATE NOCASE, role'
   ).all();
   return json(results.map(publicUser));
 }
@@ -240,29 +246,36 @@ async function createUser(request, env, admin) {
   const body = await readJson(request);
   const name = String(body?.name || '').trim();
   const email = String(body?.email || '').trim().toLowerCase();
+  const username = normaliseUsername(body?.username || email);
   const role = String(body?.role || 'Estimator');
   const tempPassword = String(body?.tempPassword || '');
 
   if (!name) return error('Name is required.', 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return error('A valid email is required.', 400);
+  if (!USERNAME_RE.test(username)) {
+    return error('Username must be 3-64 characters: letters, numbers and . _ - @ only.', 400);
+  }
   if (!ROLES.includes(role)) return error('Invalid role.', 400);
   if (tempPassword.length < MIN_PASSWORD_LENGTH) {
     return error(`Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 400);
   }
 
-  const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?1').bind(email).first();
-  if (exists) return error('A user with that email already exists.', 409);
+  const taken = await env.DB.prepare('SELECT id FROM users WHERE username = ?1').bind(username).first();
+  if (taken) return error('That username is already taken.', 409);
+  // One account per role per email: a second account must be for a different role.
+  const sameRole = await env.DB.prepare('SELECT id FROM users WHERE email = ?1 AND role = ?2').bind(email, role).first();
+  if (sameRole) return error(`This email already has a ${role} account.`, 409);
 
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO users (id, username, email, name, password_hash, role, is_active, must_change_password, created_by, created_at)
-     VALUES (?1, ?2, ?2, ?3, ?4, ?5, 1, 1, ?6, ?7)`
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, ?7, ?8)`
   )
-    .bind(id, email, name, await hashPassword(tempPassword), role, admin.email, createdAt)
+    .bind(id, username, email, name, await hashPassword(tempPassword), role, admin.username || admin.email, createdAt)
     .run();
 
-  return json({ id, name, email, role, isActive: true, mustChangePassword: true, createdAt }, 201);
+  return json({ id, username, name, email, role, isActive: true, mustChangePassword: true, createdAt }, 201);
 }
 
 async function updateUser(request, env, admin, id) {
@@ -275,6 +288,11 @@ async function updateUser(request, env, admin, id) {
   const isActive = body?.isActive !== undefined ? (body.isActive ? 1 : 0) : row.is_active;
   if (!name) return error('Name is required.', 400);
   if (!ROLES.includes(role)) return error('Invalid role.', 400);
+  if (role !== row.role) {
+    const clash = await env.DB.prepare('SELECT id FROM users WHERE email = ?1 AND role = ?2 AND id != ?3')
+      .bind(row.email, role, id).first();
+    if (clash) return error(`This email already has a ${role} account.`, 409);
+  }
 
   // Don't let an Admin lock everyone out.
   const losingAdmin = row.role === 'Admin' && row.is_active && (role !== 'Admin' || !isActive);

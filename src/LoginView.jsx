@@ -10,7 +10,7 @@ import { ThemeToggle } from './ThemeToggle';
  * ------------------------------------------------------------------
  */
 export const LoginView = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -21,7 +21,7 @@ export const LoginView = ({ onLogin }) => {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const me = await api('/api/auth/login', { method: 'POST', body: { email, password } });
+      const me = await api('/api/auth/login', { method: 'POST', body: { username, password } });
       setPassword('');
       onLogin(me);
     } catch (err) {
@@ -55,14 +55,18 @@ export const LoginView = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Username</label>
               <input
-                type="email"
+                type="text"
                 required
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] outline-none transition-all"
-                placeholder="name@firstbaseit.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)} />
+                placeholder="e.g. oliver.manager"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)} />
+              <p className="text-xs text-slate-400 mt-1">Existing accounts: your username is your email address.</p>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>

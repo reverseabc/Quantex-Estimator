@@ -129,7 +129,7 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <KeyRound size={20} className="text-slate-400" /> My Account
               </h2>
-              <p className="text-sm text-slate-500 mt-1">{user.name} · {user.email} · {user.actualRole}</p>
+              <p className="text-sm text-slate-500 mt-1">{user.name} · {user.username || user.email} · {user.email} · {user.actualRole}</p>
             </div>
             <div className="p-6">
               <ChangePasswordForm />

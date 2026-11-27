@@ -3,7 +3,10 @@
  * Creates the first Admin account for Quantex.
  *
  * Usage:
- *   node scripts/create-admin.mjs "Oliver Taghizadeh" oliver@example.com
+ *   node scripts/create-admin.mjs "Oliver Taghizadeh" oliver@example.com [username]
+ *
+ * The username defaults to the email. Usernames must be unique; the same email can
+ * have one account per role (e.g. an Admin account and a Manager account).
  *
  * You'll be prompted for a password (not echoed, not saved in shell history).
  * The script writes seed-admin.sql (git-ignored). Apply it, then delete it:
@@ -16,9 +19,9 @@ import readline from 'node:readline';
 
 const ITERATIONS = 100000; // must match worker/index.js (Workers caps PBKDF2 at 100,000)
 
-const [name, email] = process.argv.slice(2);
+const [name, email, usernameArg] = process.argv.slice(2);
 if (!name || !email || !email.includes('@')) {
-  console.error('Usage: node scripts/create-admin.mjs "Full Name" email@example.com');
+  console.error('Usage: node scripts/create-admin.mjs "Full Name" email@example.com [username]');
   process.exit(1);
 }
 
@@ -55,8 +58,13 @@ const stored = `pbkdf2$${ITERATIONS}$${salt.toString('base64')}$${hash.toString(
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
 const normalisedEmail = email.trim().toLowerCase();
+const username = (usernameArg || normalisedEmail).trim().toLowerCase();
+if (!/^[a-z0-9._@-]{3,64}$/.test(username)) {
+  console.error('Username must be 3-64 characters: letters, numbers and . _ - @ only.');
+  process.exit(1);
+}
 const sql = `INSERT INTO users (id, username, email, name, password_hash, role, is_active, must_change_password, created_by, created_at)
-VALUES (${q(randomUUID())}, ${q(normalisedEmail)}, ${q(normalisedEmail)}, ${q(name)}, ${q(stored)}, 'Admin', 1, 0, 'seed-script', ${q(new Date().toISOString())});
+VALUES (${q(randomUUID())}, ${q(username)}, ${q(normalisedEmail)}, ${q(name)}, ${q(stored)}, 'Admin', 1, 0, 'seed-script', ${q(new Date().toISOString())});
 `;
 writeFileSync('seed-admin.sql', sql);
 console.log('Wrote seed-admin.sql. Now run:');
