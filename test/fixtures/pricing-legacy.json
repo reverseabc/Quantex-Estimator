@@ -1,0 +1,295 @@
+[
+  {
+    "name": "empty estimate",
+    "input": {
+      "globalDailyRate": 1267,
+      "bufferPercent": 10,
+      "constants": [],
+      "selectedStandardItems": [],
+      "selectedApiItems": [],
+      "tmSections": {}
+    },
+    "expected": {
+      "constantsSum": 0,
+      "standardMenuSum": 0,
+      "apiMenuSum": 0,
+      "tmSum": 0,
+      "baseTotal": 0,
+      "bufferAmount": 0,
+      "subtotal": 0,
+      "grandTotal": 0,
+      "totalDays": 0
+    }
+  },
+  {
+    "name": "one of each line type",
+    "input": {
+      "globalDailyRate": 1000,
+      "bufferPercent": 10,
+      "constants": [
+        {
+          "id": "c1",
+          "days": 2
+        }
+      ],
+      "selectedStandardItems": [
+        {
+          "id": "ss6",
+          "price": 3801,
+          "quantity": 1
+        }
+      ],
+      "selectedApiItems": [],
+      "tmSections": {
+        "danniApp": {
+          "title": "Danni Application",
+          "items": [
+            {
+              "id": "da1",
+              "days": 3
+            }
+          ]
+        }
+      }
+    },
+    "expected": {
+      "constantsSum": 2000,
+      "standardMenuSum": 3801,
+      "apiMenuSum": 0,
+      "tmSum": 3000,
+      "baseTotal": 8801,
+      "bufferAmount": 880.1,
+      "subtotal": 9681.1,
+      "grandTotal": 9681.1,
+      "totalDays": 8.801
+    }
+  },
+  {
+    "name": "mixed estimate at the 2026 default rate",
+    "input": {
+      "globalDailyRate": 1267,
+      "bufferPercent": 15,
+      "constants": [
+        {
+          "id": "c1",
+          "days": 5
+        },
+        {
+          "id": "c2",
+          "days": 3
+        },
+        {
+          "id": "c3",
+          "days": 0
+        }
+      ],
+      "selectedStandardItems": [
+        {
+          "id": "ss1",
+          "price": 43000,
+          "quantity": 2
+        },
+        {
+          "id": "ss9",
+          "price": 3167.5,
+          "quantity": 1
+        }
+      ],
+      "selectedApiItems": [
+        {
+          "id": "api2",
+          "days": 14.3,
+          "quantity": 2
+        },
+        {
+          "id": "api4",
+          "days": 6.62,
+          "quantity": 1
+        }
+      ],
+      "tmSections": {
+        "danniApp": {
+          "title": "Danni Application",
+          "items": [
+            {
+              "id": "a",
+              "days": 4.5
+            },
+            {
+              "id": "b",
+              "days": 1.25
+            }
+          ]
+        },
+        "fbitIt": {
+          "title": "FBIT IT Costs",
+          "items": [
+            {
+              "id": "c",
+              "days": 2
+            }
+          ]
+        },
+        "thirdParty": {
+          "title": "Third Party Costs",
+          "items": []
+        }
+      }
+    },
+    "expected": {
+      "constantsSum": 10136,
+      "standardMenuSum": 89167.5,
+      "apiMenuSum": 44623.74,
+      "tmSum": 9819.25,
+      "baseTotal": 153746.49,
+      "bufferAmount": 23061.9735,
+      "subtotal": 176808.4635,
+      "grandTotal": 176808.4635,
+      "totalDays": 121.346875
+    }
+  },
+  {
+    "name": "numeric strings from inputs",
+    "input": {
+      "globalDailyRate": "1267",
+      "bufferPercent": "10",
+      "constants": [
+        {
+          "id": "c1",
+          "days": "2.5"
+        }
+      ],
+      "selectedStandardItems": [
+        {
+          "id": "ss4",
+          "price": 17738,
+          "quantity": "3"
+        }
+      ],
+      "selectedApiItems": [
+        {
+          "id": "api3",
+          "days": 10.4,
+          "quantity": "1"
+        }
+      ],
+      "tmSections": {
+        "danniApi": {
+          "title": "Danni API",
+          "items": [
+            {
+              "id": "x",
+              "days": "0.5"
+            }
+          ]
+        }
+      }
+    },
+    "expected": {
+      "constantsSum": 3167.5,
+      "standardMenuSum": 53214,
+      "apiMenuSum": 13176.8,
+      "tmSum": 633.5,
+      "baseTotal": 70191.8,
+      "bufferAmount": 7019.18,
+      "subtotal": 77210.98,
+      "grandTotal": 77210.98,
+      "totalDays": 55.4
+    }
+  },
+  {
+    "name": "zero daily rate",
+    "input": {
+      "globalDailyRate": 0,
+      "bufferPercent": 10,
+      "constants": [
+        {
+          "id": "c1",
+          "days": 5
+        }
+      ],
+      "selectedStandardItems": [
+        {
+          "id": "ss12",
+          "price": 1900.5,
+          "quantity": 1
+        }
+      ],
+      "selectedApiItems": [
+        {
+          "id": "api1",
+          "days": 74.3,
+          "quantity": 1
+        }
+      ],
+      "tmSections": {
+        "danniApp": {
+          "title": "Danni Application",
+          "items": [
+            {
+              "id": "a",
+              "days": 2
+            }
+          ]
+        }
+      }
+    },
+    "expected": {
+      "constantsSum": 0,
+      "standardMenuSum": 1900.5,
+      "apiMenuSum": 0,
+      "tmSum": 0,
+      "baseTotal": 1900.5,
+      "bufferAmount": 190.05,
+      "subtotal": 2090.55,
+      "grandTotal": 2090.55,
+      "totalDays": 81.3
+    }
+  },
+  {
+    "name": "missing quantities default to 1 and blank days to 0",
+    "input": {
+      "globalDailyRate": 1000,
+      "bufferPercent": 0,
+      "constants": [
+        {
+          "id": "c1",
+          "days": ""
+        }
+      ],
+      "selectedStandardItems": [
+        {
+          "id": "ss5",
+          "price": 8869
+        }
+      ],
+      "selectedApiItems": [
+        {
+          "id": "api4",
+          "days": 6.62
+        }
+      ],
+      "tmSections": {
+        "danniApp": {
+          "title": "Danni Application",
+          "items": [
+            {
+              "id": "a"
+            }
+          ]
+        }
+      }
+    },
+    "expected": {
+      "constantsSum": 0,
+      "standardMenuSum": 8869,
+      "apiMenuSum": 6620,
+      "tmSum": 0,
+      "baseTotal": 15489,
+      "bufferAmount": 0,
+      "subtotal": 15489,
+      "grandTotal": 15489,
+      "totalDays": 15.489
+    }
+  }
+]
