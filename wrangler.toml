@@ -49,7 +49,7 @@ name = "quantex-estimator-staging"
 binding = "DB"
 database_name = "quantex-db-staging"
 # Paste the ID printed by `npx wrangler d1 create quantex-db-staging`.
-database_id = "REPLACE_WITH_STAGING_DATABASE_ID"
+database_id = "757e82ea-2109-49b9-b4b1-b4b5d38bde26"
 
 [[env.staging.ratelimits]]
 name = "LOGIN_IP_LIMITER"
