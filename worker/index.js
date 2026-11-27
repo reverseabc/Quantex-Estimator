@@ -6,10 +6,11 @@
  * Auth: email + password, PBKDF2-SHA256 hashes, opaque session tokens stored
  * (hashed) in D1 and sent to the browser as an HttpOnly cookie.
  *
- * Roles: Estimator < Manager < Admin
+ * Roles (BL-06: Admin is a separate role, not a step above Manager):
  *   Estimator - create / edit estimates, request SPOE
- *   Manager   - + approve SPOE, change the default daily rate
- *   Admin     - + manage users
+ *   Manager   - everything an Estimator can do, + approve SPOE, change the default daily rate
+ *   Admin     - manage users and their own password ONLY; no access to estimates or
+ *               settings changes. Someone who administers and estimates needs two accounts.
  */
 
 import { contentFingerprint, PENDING_STATUS } from '../shared/estimateContent.js';
@@ -42,8 +43,8 @@ const error = (message, status) => json({ error: message }, status);
 
 const toPence = (n) => Math.round((Number(n) || 0) * 100);
 
-const isManagerLevel = (user) => user && (user.role === 'Manager' || user.role === 'Admin');
-const isAdmin = (user) => user && user.role === 'Admin';
+const isManager = (user) => !!user && user.role === 'Manager';
+const isAdmin = (user) => !!user && user.role === 'Admin';
 
 // ---------- CRYPTO ----------
 
@@ -365,7 +366,7 @@ async function upsertEstimate(env, body, user, idFromPath) {
     } else {
       // New approval: only Managers / Admins, only from Pending SPOE Check,
       // and the server records who and when.
-      if (!isManagerLevel(user)) return error('Only a Manager can approve an estimate.', 403);
+      if (!isManager(user)) return error('Only a Manager can approve an estimate.', 403);
       if (existing?.status !== PENDING_STATUS) {
         return error('An SPOE check must be requested before this estimate can be approved.', 409);
       }
@@ -455,6 +456,11 @@ async function handleApi(request, env, path, method) {
   // Users with a temporary password must change it before doing anything else.
   if (user.mustChangePassword) return error('You must change your password before continuing.', 403);
 
+  // BL-06: Admins have no access to estimates at all - not even read-only.
+  if ((path === '/api/estimates' || path.startsWith('/api/estimates/')) && isAdmin(user)) {
+    return error("Admin accounts don't have access to estimates. Use a Manager or Estimator account.", 403);
+  }
+
   if (path === '/api/estimates') {
     if (method === 'GET') return listEstimates(env);
     if (method === 'POST') {
@@ -478,7 +484,7 @@ async function handleApi(request, env, path, method) {
   if (path === '/api/settings') {
     if (method === 'GET') return getSettings(env);
     if (method === 'PUT') {
-      if (!isManagerLevel(user)) return error('Only a Manager can change settings.', 403);
+      if (!isManager(user)) return error('Only a Manager can change settings.', 403);
       return putSettings(env, await readJson(request));
     }
     return error('Method not allowed', 405);

@@ -5,7 +5,9 @@
  * - Broadcasts 'qx:unauthorized' on 401 so the app can return to the login screen.
  */
 export const ROLES = ['Estimator', 'Manager', 'Admin'];
-export const isManagerLevel = (role) => role === 'Manager' || role === 'Admin';
+// BL-06: roles are separate, not cumulative. Admin manages users only.
+export const isManager = (role) => role === 'Manager';
+export const isAdmin = (role) => role === 'Admin';
 
 export async function api(path, { method = 'GET', body } = {}) {
   const res = await fetch(path, {

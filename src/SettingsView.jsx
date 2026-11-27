@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, Settings, Building2, Save, CheckCircle, ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react';
-import { isManagerLevel } from './api';
-import { ChangePasswordForm, UserManagement } from './AccountViews';
+import { isManager, isAdmin } from './api';
+import { ChangePasswordForm } from './AccountViews';
 
 export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => {
   const [rateInput, setRateInput] = useState(currentRate);
@@ -32,9 +32,9 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
           
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => user.onChangeView('dashboard')} 
+              onClick={() => user.onChangeView(isAdmin(user.role) ? 'users' : 'dashboard')} 
               className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              title="Back to Dashboard"
+              title="Back"
             >
               <ArrowLeft size={24} />
             </button>
@@ -42,7 +42,7 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Settings size={24} className="text-[#5ABBCE]" /> Settings
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Manage application preferences and global defaults.</p>
+              <p className="text-sm text-slate-500 mt-1">{isAdmin(user.role) ? 'Manage your account.' : 'Manage application preferences and global defaults.'}</p>
             </div>
           </div>
 
@@ -61,13 +61,14 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
         <div className="grid grid-cols-1 gap-6">
           
-          {/* PRICING & RATES CARD */}
+          {/* PRICING & RATES CARD: Manager setting; not shown in Admin view (BL-06) */}
+          {!isAdmin(user.role) && (
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Building2 size={20} className="text-slate-400" /> Pricing & Rates
               </h2>
-              {isManagerLevel(user.role) ? (
+              {isManager(user.role) ? (
                 <span className="text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
                   Manager Access
                 </span>
@@ -93,12 +94,12 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
                         type="number" 
                         value={rateInput}
                         onChange={(e) => setRateInput(e.target.value)}
-                        disabled={!isManagerLevel(user.role) || isSaving}
+                        disabled={!isManager(user.role) || isSaving}
                         className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-lg font-bold text-slate-800 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] disabled:opacity-60 transition-all"
                       />
                     </div>
                     
-                    {isManagerLevel(user.role) && (
+                    {isManager(user.role) && (
                       <button 
                         onClick={handleSave}
                         disabled={isSaving || Number(rateInput) === Number(currentRate)}
@@ -118,9 +119,9 @@ export const SettingsView = ({ user, currentRate, onSaveRate, onMenuClick }) => 
               </div>
             </div>
           </section>
+          )}
 
-          {/* USERS (Admin only) */}
-          {user.role === 'Admin' && <UserManagement currentUserId={user.id} />}
+          {/* BL-02: User Management now has its own page (UsersView). */}
 
           {/* MY ACCOUNT */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

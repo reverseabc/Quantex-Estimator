@@ -1,4 +1,5 @@
-import { Plus, X, LogOut, Search, Home, BarChart3, Settings } from 'lucide-react';
+import { Plus, X, LogOut, Search, Home, BarChart3, Settings, Users } from 'lucide-react';
+import { isAdmin } from './api';
 import React, { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -9,6 +10,10 @@ import { ThemeToggle } from './ThemeToggle';
  */
 export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
   const [imgError, setImgError] = useState(false);
+  // BL-06: estimate navigation is hidden in Admin view. Admins previewing another
+  // role still see it (with no data), plus the Users link.
+  const showEstimateNav = !isAdmin(user.role);
+  const showUsersLink = isAdmin(user.actualRole);
 
   return (
     <>
@@ -41,6 +46,14 @@ export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
           <div className="flex-1 p-4 space-y-1 overflow-y-auto">
             <p className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Menu</p>
 
+            {showUsersLink && (
+              <button onClick={() => onNavigate('users')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors group">
+                <Users size={18} className="group-hover:text-[#5ABBCE]" />
+                <span className="font-medium">User Management</span>
+              </button>
+            )}
+
+            {showEstimateNav && (<>
             <button onClick={() => onNavigate('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-[#5ABBCE] rounded-lg transition-colors group">
               <Home size={18} className="group-hover:text-[#5ABBCE]" />
               <span className="font-medium">Dashboard</span>
@@ -74,6 +87,7 @@ export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
                 </div>
               </div>
             </div>
+            </>)}
 
           </div>
 
@@ -85,7 +99,7 @@ export const Sidebar = ({ isOpen, onClose, user, onLogout, onNavigate }) => {
             {/* NEW: Added onClick handler here to navigate to settings */}
             <button onClick={() => onNavigate('settings')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 hover:text-[#5ABBCE] rounded-lg transition-colors mb-2 group">
               <Settings size={18} className="group-hover:text-[#5ABBCE]" />
-              <span className="font-medium">Settings / Admin</span>
+              <span className="font-medium">Settings</span>
             </button>
 
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white">

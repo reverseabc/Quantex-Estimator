@@ -1,7 +1,7 @@
 import { Plus, Trash2, Calendar, FileText, LogOut, LayoutGrid, Search, User, AlertCircle, Menu, BarChart3, Tag } from 'lucide-react';
 import React, { useState } from 'react';
 import { formatCurrency } from './App';
-import { isManagerLevel } from './api';
+import { isManager } from './api';
 
 /**
  * ------------------------------------------------------------------
@@ -55,6 +55,10 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
           <div className="flex items-center gap-4">
             {/* VIEW-AS SWITCHER: Admins only, for testing other roles without re-logging in */}
             {user.actualRole === 'Admin' ? (
+              <>
+              <span title="Admins can't see or change estimates. Screens are shown empty." className="whitespace-nowrap text-xs px-3 py-1 rounded-full border font-bold bg-amber-50 text-amber-700 border-amber-200">
+                Preview only
+              </span>
               <button
                 onClick={onSwitchRole}
                 title="Admins can preview the app as each role. Server permissions still follow your real role."
@@ -64,8 +68,9 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
                     ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
                     : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'}`}
               >
-                View as: {user.role} (Switch)
+                <span className="whitespace-nowrap">Preview as: {user.role}</span>
               </button>
+              </>
             ) : (
               <span className="text-xs px-3 py-1 rounded-full border font-bold bg-slate-100 text-slate-600 border-slate-200">
                 Role: {user.role}
@@ -89,7 +94,7 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
       <main className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Manager Pending Alert */}
-        {isManagerLevel(user.role) && (
+        {isManager(user.role) && (
           <div className="mb-8">
             <div className="bg-purple-50 border border-purple-100 rounded-xl p-1 flex p-1 gap-2">
               <button

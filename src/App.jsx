@@ -5,7 +5,8 @@ import { LoginView, ReportsView } from './LoginView';
 import { DashboardView } from './DashboardView';
 import { SettingsView } from './SettingsView'; // NEW IMPORT
 import { ForcedPasswordChangeView } from './AccountViews';
-import { api, ROLES, isManagerLevel } from './api';
+import { api, ROLES, isManager, isAdmin } from './api';
+import { UsersView } from './UsersView';
 import { contentFingerprint, PENDING_STATUS } from '../shared/estimateContent.js';
 
 /**
@@ -868,7 +869,7 @@ const Estimator = ({ initialData, onSave, onBack, user, onMenuClick }) => {
               {status === 'Draft' && (
                 <button onClick={handleRequestSPOE} className="flex items-center gap-2 bg-[#5ABBCE] hover:brightness-95 text-white font-bold text-xs px-3 py-2 rounded-lg transition-all shadow-sm"><Send size={14} /> Request SPOE Check</button>
               )}
-              {status === 'Pending SPOE Check' && isManagerLevel(user.role) && (
+              {status === 'Pending SPOE Check' && isManager(user.role) && (
                 <button onClick={handleApproveSPOE} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors shadow-sm"><CheckCircle size={14} /> Approve SPOE</button>
               )}
             </div>
@@ -902,9 +903,13 @@ export default function App() {
   const [currentEstimateData, setCurrentEstimateData] = useState(null);
   const [appSettings, setAppSettings] = useState({ dailyRate: 1267 });
 
-  const loadData = async () => {
+  const loadData = async (me) => {
     try {
-      const [estimates, settings] = await Promise.all([api('/api/estimates'), api('/api/settings')]);
+      // BL-06: Admins have no access to estimates, so don't ask for them.
+      const [estimates, settings] = await Promise.all([
+        isAdmin(me?.role) ? Promise.resolve([]) : api('/api/estimates'),
+        api('/api/settings'),
+      ]);
       setSavedEstimates(estimates);
       setAppSettings(settings);
     } catch (err) {
@@ -917,8 +922,9 @@ export default function App() {
     if (me.mustChangePassword) {
       setView('change-password');
     } else {
-      setView('dashboard');
-      loadData();
+      // BL-06: Admins land on User Management; everyone else on the dashboard.
+      setView(isAdmin(me.role) ? 'users' : 'dashboard');
+      loadData(me);
     }
   };
 
@@ -940,11 +946,13 @@ export default function App() {
       setUser(prev => ({...prev, isSidebarOpen: isOpen}));
   };
 
-  // Admins can preview the UI as each role. The server still applies their real role.
+  // Admins can preview the other roles' screens. The server still applies their real
+  // role, so previews show no estimates and every estimate action is refused.
   const handleSwitchRole = () => {
-    if (user.actualRole !== 'Admin') return;
+    if (!isAdmin(user.actualRole)) return;
     const next = ROLES[(ROLES.indexOf(user.role) + 1) % ROLES.length];
     setUser({ ...user, role: next });
+    setView(isAdmin(next) ? 'users' : 'dashboard');
   };
 
   const handleLogin = (me) => startSession(me);
@@ -1010,6 +1018,18 @@ export default function App() {
 
   const handleNavigate = (page) => {
       setSidebarOpen(false);
+      // BL-06: in Admin view, only Users and Settings are available.
+      if (isAdmin(user.role) && !['users', 'settings'].includes(page)) {
+        setView('users');
+        return;
+      }
+      if (page === 'users') {
+        if (isAdmin(user.actualRole)) {
+          setUser(prev => ({ ...prev, role: prev.actualRole })); // leave any preview
+          setView('users');
+        }
+        return;
+      }
       if (page === 'create') handleCreateNew();
       else if (page === 'dashboard') setView('dashboard');
       else if (page === 'reports') setView('reports');
@@ -1039,6 +1059,17 @@ export default function App() {
       user: { ...user, setSidebarOpen, onLogout: handleLogout, onCreateNew: handleCreateNew, onChangeView: handleNavigate },
       onMenuClick: () => setSidebarOpen(true)
   };
+
+  // BL-06: Admin view never renders estimate screens (covers any stale view state).
+  const adminHome = isAdmin(user.role) && ['dashboard', 'reports', 'estimate'].includes(view);
+  if ((view === 'users' || adminHome) && isAdmin(user.actualRole)) {
+    return (
+      <>
+        <Sidebar isOpen={user.isSidebarOpen} onClose={() => setSidebarOpen(false)} user={user} onLogout={handleLogout} onNavigate={handleNavigate} />
+        <UsersView {...commonProps} onSwitchRole={handleSwitchRole} />
+      </>
+    );
+  }
 
   if (view === 'dashboard') {
     return (
