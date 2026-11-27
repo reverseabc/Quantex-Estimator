@@ -48,7 +48,7 @@ function hashPassword(password) {
 /** Inserts a user directly into the fake DB and returns its row values. */
 export function seedUser(
   env,
-  { username, role = 'Estimator', name, email, isActive = true, mustChangePassword = false, password = TEST_PASSWORD }
+  { username, role = 'Estimator', name, email, isActive = true, mustChangePassword = false, password = TEST_PASSWORD },
 ) {
   const user = {
     id: randomUUID(),
@@ -60,7 +60,7 @@ export function seedUser(
   env.DB.db
     .prepare(
       `INSERT INTO users (id, username, email, name, password_hash, role, is_active, must_change_password, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'test', ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'test', ?)`,
     )
     .run(
       user.id,
@@ -71,7 +71,7 @@ export function seedUser(
       role,
       isActive ? 1 : 0,
       mustChangePassword ? 1 : 0,
-      new Date().toISOString()
+      new Date().toISOString(),
     );
   return user;
 }

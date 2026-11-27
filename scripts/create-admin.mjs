@@ -28,29 +28,46 @@ if (!name || !email || !email.includes('@')) {
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: process.stdin.isTTY });
 let muted = false;
 const realWrite = rl._writeToOutput?.bind(rl);
-rl._writeToOutput = (s) => { if (!muted && realWrite) realWrite(s); };
+rl._writeToOutput = (s) => {
+  if (!muted && realWrite) realWrite(s);
+};
 
 // Line queue so this works both interactively and with piped input.
 const pending = [];
 let waiter = null;
 rl.on('line', (line) => {
-  if (waiter) { const w = waiter; waiter = null; w(line); } else pending.push(line);
+  if (waiter) {
+    const w = waiter;
+    waiter = null;
+    w(line);
+  } else pending.push(line);
 });
 
 function askHidden(question) {
   process.stdout.write(question);
   muted = true;
   return new Promise((resolve) => {
-    const done = (answer) => { muted = false; process.stdout.write('\n'); resolve(answer); };
-    if (pending.length) done(pending.shift()); else waiter = done;
+    const done = (answer) => {
+      muted = false;
+      process.stdout.write('\n');
+      resolve(answer);
+    };
+    if (pending.length) done(pending.shift());
+    else waiter = done;
   });
 }
 
 const password = await askHidden('Password (min 12 characters): ');
 const confirm = await askHidden('Confirm password: ');
 rl.close();
-if (password !== confirm) { console.error('Passwords do not match.'); process.exit(1); }
-if (password.length < 12) { console.error('Password must be at least 12 characters.'); process.exit(1); }
+if (password !== confirm) {
+  console.error('Passwords do not match.');
+  process.exit(1);
+}
+if (password.length < 12) {
+  console.error('Password must be at least 12 characters.');
+  process.exit(1);
+}
 
 const salt = randomBytes(16);
 const hash = pbkdf2Sync(password, salt, ITERATIONS, 32, 'sha256');

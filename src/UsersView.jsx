@@ -10,14 +10,20 @@ export const UsersView = ({ user, onMenuClick, onSwitchRole }) => (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
       <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Menu">
+          <button
+            onClick={onMenuClick}
+            className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            title="Menu"
+          >
             <Menu size={24} />
           </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <Users size={24} className="text-[#5ABBCE]" /> User Management
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Add users, change roles, reset passwords and deactivate accounts.</p>
+            <p className="text-sm text-slate-500 mt-1">
+              Add users, change roles, reset passwords and deactivate accounts.
+            </p>
           </div>
         </div>
         {onSwitchRole && (

@@ -66,7 +66,10 @@ test('should_return_409_when_username_is_taken', async () => {
 
 test('should_allow_same_email_for_a_different_role', async () => {
   const { admin } = await asAdmin();
-  const res = await createUser(admin, newUser({ email: 'admin@example.test', username: 'admin.manager', role: 'Manager' }));
+  const res = await createUser(
+    admin,
+    newUser({ email: 'admin@example.test', username: 'admin.manager', role: 'Manager' }),
+  );
   assert.equal(res.status, 201);
 });
 

@@ -35,7 +35,9 @@ export const ChangePasswordForm = ({ forced = false, onChanged }) => {
         method: 'POST',
         body: { currentPassword: current, newPassword: next },
       });
-      setCurrent(''); setNext(''); setConfirm('');
+      setCurrent('');
+      setNext('');
+      setConfirm('');
       setMessage({ type: 'ok', text: 'Password changed.' });
       onChanged?.(me);
     } catch (err) {
@@ -51,21 +53,50 @@ export const ChangePasswordForm = ({ forced = false, onChanged }) => {
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
           {forced ? 'Temporary password' : 'Current password'}
         </label>
-        <input type="password" required autoComplete="current-password" className={inputClass} value={current} onChange={(e) => setCurrent(e.target.value)} />
+        <input
+          type="password"
+          required
+          autoComplete="current-password"
+          className={inputClass}
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
       </div>
       <div>
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">New password</label>
-        <input type="password" required autoComplete="new-password" className={inputClass} value={next} onChange={(e) => setNext(e.target.value)} />
+        <input
+          type="password"
+          required
+          autoComplete="new-password"
+          className={inputClass}
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+        />
         <p className="text-xs text-slate-400 mt-1">At least {MIN_PASSWORD_LENGTH} characters.</p>
       </div>
       <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Confirm new password</label>
-        <input type="password" required autoComplete="new-password" className={inputClass} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+          Confirm new password
+        </label>
+        <input
+          type="password"
+          required
+          autoComplete="new-password"
+          className={inputClass}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
       </div>
       {message && (
-        <p className={`text-sm font-bold ${message.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>{message.text}</p>
+        <p className={`text-sm font-bold ${message.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+          {message.text}
+        </p>
       )}
-      <button type="submit" disabled={saving} className="bg-[#5ABBCE] hover:brightness-95 text-white px-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={saving}
+        className="bg-[#5ABBCE] hover:brightness-95 text-white px-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-50"
+      >
         {saving ? 'Saving...' : 'Change password'}
       </button>
     </form>
@@ -84,7 +115,9 @@ export const ForcedPasswordChangeView = ({ user, onChanged, onLogout }) => (
         </p>
       </div>
       <ChangePasswordForm forced onChanged={onChanged} />
-      <button onClick={onLogout} className="text-xs text-slate-400 hover:text-slate-600">Sign out</button>
+      <button onClick={onLogout} className="text-xs text-slate-400 hover:text-slate-600">
+        Sign out
+      </button>
     </div>
   </div>
 );
@@ -123,7 +156,9 @@ export const UserManagement = ({ currentUserId }) => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -132,7 +167,10 @@ export const UserManagement = ({ currentUserId }) => {
       const created = await api('/api/users', { method: 'POST', body: form });
       setUsers((u) => [...u, created].sort((a, b) => a.name.localeCompare(b.name) || a.role.localeCompare(b.role)));
       setForm(EMPTY_FORM);
-      flash('ok', `${created.name} (${created.role}) added with username "${created.username}". Share the temporary password with them securely; they'll set their own at first sign-in.`);
+      flash(
+        'ok',
+        `${created.name} (${created.role}) added with username "${created.username}". Share the temporary password with them securely; they'll set their own at first sign-in.`,
+      );
     } catch (err) {
       flash('error', err.message);
     } finally {
@@ -151,9 +189,12 @@ export const UserManagement = ({ currentUserId }) => {
   };
 
   const handleReset = (u) => {
-    const temp = prompt(`Enter a temporary password for ${u.name} (at least ${MIN_PASSWORD_LENGTH} characters). They'll be signed out and must choose a new one at next sign-in.`);
+    const temp = prompt(
+      `Enter a temporary password for ${u.name} (at least ${MIN_PASSWORD_LENGTH} characters). They'll be signed out and must choose a new one at next sign-in.`,
+    );
     if (temp === null) return;
-    if (temp.length < MIN_PASSWORD_LENGTH) return flash('error', `Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (temp.length < MIN_PASSWORD_LENGTH)
+      return flash('error', `Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     update(u, { tempPassword: temp }, `Password reset for ${u.name}.`);
   };
 
@@ -163,41 +204,89 @@ export const UserManagement = ({ currentUserId }) => {
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <Users size={20} className="text-slate-400" /> Users
         </h2>
-        <span className="text-xs font-bold px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full border border-rose-200">Admin Access</span>
+        <span className="text-xs font-bold px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full border border-rose-200">
+          Admin Access
+        </span>
       </div>
 
       <div className="p-6 space-y-6">
         {message && (
-          <p className={`text-sm font-bold flex items-center gap-1 ${message.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+          <p
+            className={`text-sm font-bold flex items-center gap-1 ${message.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}
+          >
             {message.type === 'ok' && <CheckCircle size={16} />} {message.text}
           </p>
         )}
 
         {/* Add user */}
-        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end bg-slate-50 border border-slate-100 rounded-lg p-4">
+        <form
+          onSubmit={handleAdd}
+          className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end bg-slate-50 border border-slate-100 rounded-lg p-4"
+        >
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Name</label>
-            <input required className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input
+              required
+              className={inputClass}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Username</label>
-            <input required pattern="[A-Za-z0-9._@\-]{3,64}" title="3-64 characters: letters, numbers and . _ - @" autoCapitalize="none" spellCheck={false} placeholder="e.g. jsmith.mgr" className={inputClass} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            <input
+              required
+              pattern="[A-Za-z0-9._@\-]{3,64}"
+              title="3-64 characters: letters, numbers and . _ - @"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="e.g. jsmith.mgr"
+              className={inputClass}
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+            />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email</label>
-            <input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <input
+              required
+              type="email"
+              className={inputClass}
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Role</label>
-            <select className={inputClass} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              {ROLES.map((r) => <option key={r}>{r}</option>)}
+            <select
+              className={inputClass}
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+            >
+              {ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Temporary password</label>
-            <input required type="text" autoComplete="off" minLength={MIN_PASSWORD_LENGTH} className={inputClass} value={form.tempPassword} onChange={(e) => setForm({ ...form, tempPassword: e.target.value })} />
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Temporary password
+            </label>
+            <input
+              required
+              type="text"
+              autoComplete="off"
+              minLength={MIN_PASSWORD_LENGTH}
+              className={inputClass}
+              value={form.tempPassword}
+              onChange={(e) => setForm({ ...form, tempPassword: e.target.value })}
+            />
           </div>
-          <button type="submit" disabled={adding} className="flex items-center justify-center gap-2 bg-[#5ABBCE] hover:brightness-95 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={adding}
+            className="flex items-center justify-center gap-2 bg-[#5ABBCE] hover:brightness-95 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+          >
             <UserPlus size={16} /> {adding ? 'Adding...' : 'Add user'}
           </button>
         </form>
@@ -223,37 +312,62 @@ export const UserManagement = ({ currentUserId }) => {
                   const isSelf = u.id === currentUserId;
                   return (
                     <tr key={u.id} className={`border-b border-slate-50 ${u.isActive ? '' : 'opacity-50'}`}>
-                      <td className="py-3 pr-4 font-bold text-slate-700">{u.name}{isSelf && <span className="ml-2 text-xs text-slate-400">(you)</span>}</td>
+                      <td className="py-3 pr-4 font-bold text-slate-700">
+                        {u.name}
+                        {isSelf && <span className="ml-2 text-xs text-slate-400">(you)</span>}
+                      </td>
                       <td className="py-3 pr-4 font-mono text-xs text-slate-600">{u.username}</td>
                       <td className="py-3 pr-4 text-slate-500">{u.email}</td>
                       <td className="py-3 pr-4">
                         <select
                           value={u.role}
                           disabled={isSelf}
-                          onChange={(e) => update(u, { role: e.target.value }, `${u.username} is now ${e.target.value}.`)}
+                          onChange={(e) =>
+                            update(u, { role: e.target.value }, `${u.username} is now ${e.target.value}.`)
+                          }
                           className={`text-xs font-bold px-2 py-1 rounded-full border ${roleBadge[u.role] || ''} disabled:cursor-not-allowed`}
                         >
-                          {ROLES.map((r) => <option key={r}>{r}</option>)}
+                          {ROLES.map((r) => (
+                            <option key={r}>{r}</option>
+                          ))}
                         </select>
                       </td>
                       <td className="py-3 pr-4 text-xs">
-                        {!u.isActive ? <span className="text-slate-500 font-bold">Deactivated</span>
-                          : u.mustChangePassword ? <span className="text-amber-600 font-bold">Awaiting first sign-in</span>
-                          : <span className="text-emerald-600 font-bold">Active</span>}
+                        {!u.isActive ? (
+                          <span className="text-slate-500 font-bold">Deactivated</span>
+                        ) : u.mustChangePassword ? (
+                          <span className="text-amber-600 font-bold">Awaiting first sign-in</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold">Active</span>
+                        )}
                       </td>
                       <td className="py-3 text-right whitespace-nowrap">
-                        <button onClick={() => handleReset(u)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-[#5ABBCE] px-2 py-1" title="Reset password">
+                        <button
+                          onClick={() => handleReset(u)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-[#5ABBCE] px-2 py-1"
+                          title="Reset password"
+                        >
                           <RotateCcw size={14} /> Reset
                         </button>
-                        {!isSelf && (u.isActive ? (
-                          <button onClick={() => confirm(`Deactivate ${u.name}? They'll be signed out immediately.`) && update(u, { isActive: false }, `${u.name} deactivated.`)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-red-600 px-2 py-1">
-                            <Ban size={14} /> Deactivate
-                          </button>
-                        ) : (
-                          <button onClick={() => update(u, { isActive: true }, `${u.name} reactivated.`)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1">
-                            <UserCheck size={14} /> Reactivate
-                          </button>
-                        ))}
+                        {!isSelf &&
+                          (u.isActive ? (
+                            <button
+                              onClick={() =>
+                                confirm(`Deactivate ${u.name}? They'll be signed out immediately.`) &&
+                                update(u, { isActive: false }, `${u.name} deactivated.`)
+                              }
+                              className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-red-600 px-2 py-1"
+                            >
+                              <Ban size={14} /> Deactivate
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => update(u, { isActive: true }, `${u.name} reactivated.`)}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1"
+                            >
+                              <UserCheck size={14} /> Reactivate
+                            </button>
+                          ))}
                       </td>
                     </tr>
                   );

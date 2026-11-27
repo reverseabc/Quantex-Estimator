@@ -33,7 +33,9 @@ export const LoginView = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative">
-      <div className="absolute top-4 right-4"><ThemeToggle variant="icon" /></div>
+      <div className="absolute top-4 right-4">
+        <ThemeToggle variant="icon" />
+      </div>
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
         <div className="bg-white p-8 border-b border-slate-100 flex justify-center">
           {!imgError ? (
@@ -41,9 +43,12 @@ export const LoginView = ({ onLogin }) => {
               src="logo.png"
               alt="FirstBaseIT Ltd."
               className="h-16 object-contain"
-              onError={() => setImgError(true)} />
+              onError={() => setImgError(true)}
+            />
           ) : (
-            <span className="text-3xl font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.</span>
+            <span className="text-3xl font-bold tracking-tighter text-slate-800">
+              <span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.
+            </span>
           )}
         </div>
 
@@ -65,7 +70,8 @@ export const LoginView = ({ onLogin }) => {
                 className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] outline-none transition-all"
                 placeholder="e.g. oliver.manager"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)} />
+                onChange={(e) => setUsername(e.target.value)}
+              />
               <p className="text-xs text-slate-400 mt-1">Existing accounts: your username is your email address.</p>
             </div>
             <div>
@@ -76,11 +82,14 @@ export const LoginView = ({ onLogin }) => {
                 className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#5ABBCE] focus:border-[#5ABBCE] outline-none transition-all"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)} />
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             {errorMsg && (
-              <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{errorMsg}</p>
+              <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {errorMsg}
+              </p>
             )}
 
             <button
@@ -92,9 +101,7 @@ export const LoginView = ({ onLogin }) => {
             </button>
           </form>
         </div>
-        <div className="bg-slate-50 p-4 text-center text-xs text-slate-400">
-          © 2026 FirstBaseIT Ltd.
-        </div>
+        <div className="bg-slate-50 p-4 text-center text-xs text-slate-400">© 2026 FirstBaseIT Ltd.</div>
       </div>
     </div>
   );
@@ -137,16 +144,18 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
   const filteredEstimates = useMemo(() => {
     if (!savedEstimates || !dateRange) return [];
 
-    return savedEstimates.filter(est => {
-      // 1. Must be Approved
-      if (est.status !== 'Approved') return false;
+    return savedEstimates
+      .filter((est) => {
+        // 1. Must be Approved
+        if (est.status !== 'Approved') return false;
 
-      // 2. Must be within date range
-      const estDate = new Date(est.projectDate);
-      estDate.setHours(12, 0, 0, 0); // Avoid timezone offset issues
+        // 2. Must be within date range
+        const estDate = new Date(est.projectDate);
+        estDate.setHours(12, 0, 0, 0); // Avoid timezone offset issues
 
-      return estDate >= dateRange.start && estDate <= dateRange.end;
-    }).sort((a, b) => new Date(b.projectDate) - new Date(a.projectDate)); // Newest first
+        return estDate >= dateRange.start && estDate <= dateRange.end;
+      })
+      .sort((a, b) => new Date(b.projectDate) - new Date(a.projectDate)); // Newest first
   }, [savedEstimates, dateRange]);
 
   // Calculate Summary Metrics
@@ -156,15 +165,15 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
   // Simple CSV Export for this specific report
   const handleExportReport = () => {
     const headers = ['Project Name', 'JIRA Ref', 'Owner', 'Date', 'Grand Total Excl. VAT'];
-    const rows = filteredEstimates.map(e => [
+    const rows = filteredEstimates.map((e) => [
       `"${e.projectName}"`,
       `"${e.jiraRef || ''}"`,
       `"${e.owner}"`,
       e.projectDate,
-      e.grandTotal
+      e.grandTotal,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -178,7 +187,10 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button
+              onClick={onMenuClick}
+              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
               <Menu size={24} />
             </button>
             <h1 className="font-bold text-slate-700 text-lg">Reports & Analytics</h1>
@@ -193,7 +205,6 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-
         {/* Report Header & Filters */}
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-8">
           <div>
@@ -238,13 +249,15 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]" />
+                  className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]"
+                />
                 <span className="text-slate-400 text-xs">to</span>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]" />
+                  className="text-xs border border-slate-200 rounded-md px-2 py-1.5 focus:ring-[#5ABBCE] focus:border-[#5ABBCE]"
+                />
               </div>
             )}
           </div>
@@ -286,7 +299,10 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Filter size={16} />
-              <span>Showing estimates from <strong>{dateRange?.start.toLocaleDateString()}</strong> to <strong>{dateRange?.end.toLocaleDateString()}</strong></span>
+              <span>
+                Showing estimates from <strong>{dateRange?.start.toLocaleDateString()}</strong> to{' '}
+                <strong>{dateRange?.end.toLocaleDateString()}</strong>
+              </span>
             </div>
             <button
               onClick={handleExportReport}
@@ -316,20 +332,21 @@ export const ReportsView = ({ user, savedEstimates, onMenuClick }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredEstimates.map(est => (
+                {filteredEstimates.map((est) => (
                   <tr key={est.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-3 font-medium text-slate-700">{est.projectName}</td>
                     <td className="px-6 py-3 text-slate-500">{est.jiraRef || '-'}</td>
                     <td className="px-6 py-3 text-slate-500">{est.owner}</td>
                     <td className="px-6 py-3 text-slate-500">{new Date(est.projectDate).toLocaleDateString()}</td>
-                    <td className="px-6 py-3 text-right font-bold text-emerald-600">{formatCurrency(est.grandTotal)}</td>
+                    <td className="px-6 py-3 text-right font-bold text-emerald-600">
+                      {formatCurrency(est.grandTotal)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </div>
-
       </main>
     </div>
   );
