@@ -1,0 +1,6 @@
+dist/
+coverage/
+.wrangler/
+node_modules/
+package-lock.json
+public/
