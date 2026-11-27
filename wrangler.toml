@@ -33,3 +33,36 @@ namespace_id = "1002"
   [ratelimits.simple]
   limit = 5
   period = 60
+
+# ---------------------------------------------------------------------------
+# Staging (FN-11): a separate Worker and D1 database for testing migrations and
+# builds before they reach live. It never holds live data: seed it with test
+# accounts only. Deploy with `npm run deploy:staging`.
+#
+# Bindings aren't inherited from the top level, so they're repeated here.
+# Rate limiter namespace IDs differ from live so the two keep separate counters.
+# ---------------------------------------------------------------------------
+[env.staging]
+name = "quantex-estimator-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "quantex-db-staging"
+# Paste the ID printed by `npx wrangler d1 create quantex-db-staging`.
+database_id = "REPLACE_WITH_STAGING_DATABASE_ID"
+
+[[env.staging.ratelimits]]
+name = "LOGIN_IP_LIMITER"
+namespace_id = "2001"
+
+  [env.staging.ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[env.staging.ratelimits]]
+name = "LOGIN_USER_LIMITER"
+namespace_id = "2002"
+
+  [env.staging.ratelimits.simple]
+  limit = 5
+  period = 60
