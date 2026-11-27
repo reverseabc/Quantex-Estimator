@@ -38,7 +38,11 @@ export const ThemeToggle = ({ variant = 'row' }) => {
       aria-label={label}
       className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 hover:text-[#5ABBCE] rounded-lg transition-colors mb-2 group"
     >
-      {isDark ? <Sun size={18} className="group-hover:text-[#5ABBCE]" /> : <Moon size={18} className="group-hover:text-[#5ABBCE]" />}
+      {isDark ? (
+        <Sun size={18} className="group-hover:text-[#5ABBCE]" />
+      ) : (
+        <Moon size={18} className="group-hover:text-[#5ABBCE]" />
+      )}
       <span className="font-medium">{isDark ? 'Light mode' : 'Dark mode'}</span>
     </button>
   );

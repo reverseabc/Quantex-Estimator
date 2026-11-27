@@ -24,7 +24,10 @@ const PBKDF2_ITERATIONS = 100000; // Workers' maximum; must match scripts/create
 const MIN_PASSWORD_LENGTH = 12;
 // Usernames: 3-64 chars, lowercase letters, digits and . _ - @ (so an email works as one).
 const USERNAME_RE = /^[a-z0-9._@-]{3,64}$/;
-const normaliseUsername = (v) => String(v || '').trim().toLowerCase();
+const normaliseUsername = (v) =>
+  String(v || '')
+    .trim()
+    .toLowerCase();
 // Used when the username doesn't exist, so failed logins take the same time either way.
 const DUMMY_HASH = `pbkdf2$${PBKDF2_ITERATIONS}$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`;
 // Login rate limits (see [[ratelimits]] in wrangler.toml). Window is 60 seconds.
@@ -114,9 +117,7 @@ async function createSession(env, userId) {
   const token = randomToken();
   const now = new Date();
   const expires = new Date(now.getTime() + SESSION_HOURS * 3600 * 1000);
-  await env.DB.prepare(
-    'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?1, ?2, ?3, ?4)'
-  )
+  await env.DB.prepare('INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?1, ?2, ?3, ?4)')
     .bind(await sha256Hex(token), userId, now.toISOString(), expires.toISOString())
     .run();
   // Opportunistic cleanup of expired sessions.
@@ -130,7 +131,7 @@ async function getSessionUser(request, env) {
   const row = await env.DB.prepare(
     `SELECT u.id, u.username, u.name, u.email, u.role, u.is_active, u.must_change_password, s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
-      WHERE s.token_hash = ?1`
+      WHERE s.token_hash = ?1`,
   )
     .bind(await sha256Hex(token))
     .first();
@@ -172,11 +173,9 @@ async function login(request, env) {
   if (!username || !password) return error('Username and password are required.', 400);
 
   if (await loginRateLimited(request, env, username)) {
-    return json(
-      { error: 'Too many sign-in attempts. Please wait a minute and try again.' },
-      429,
-      { 'Retry-After': String(LOGIN_RETRY_AFTER_SECONDS) }
-    );
+    return json({ error: 'Too many sign-in attempts. Please wait a minute and try again.' }, 429, {
+      'Retry-After': String(LOGIN_RETRY_AFTER_SECONDS),
+    });
   }
 
   const row = await env.DB.prepare('SELECT * FROM users WHERE username = ?1').bind(username).first();
@@ -199,7 +198,9 @@ async function login(request, env) {
 async function logout(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (token) {
-    await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?1').bind(await sha256Hex(token)).run();
+    await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?1')
+      .bind(await sha256Hex(token))
+      .run();
   }
   return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', request, 0) });
 }
@@ -232,7 +233,7 @@ async function changePassword(request, env, user) {
 
 async function listUsers(env) {
   const { results } = await env.DB.prepare(
-    'SELECT id, username, name, email, role, is_active, must_change_password, created_at FROM users ORDER BY name COLLATE NOCASE, role'
+    'SELECT id, username, name, email, role, is_active, must_change_password, created_at FROM users ORDER BY name COLLATE NOCASE, role',
   ).all();
   return json(results.map(publicUser));
 }
@@ -245,7 +246,9 @@ async function activeAdminCount(env) {
 async function createUser(request, env, admin) {
   const body = await readJson(request);
   const name = String(body?.name || '').trim();
-  const email = String(body?.email || '').trim().toLowerCase();
+  const email = String(body?.email || '')
+    .trim()
+    .toLowerCase();
   const username = normaliseUsername(body?.username || email);
   const role = String(body?.role || 'Estimator');
   const tempPassword = String(body?.tempPassword || '');
@@ -263,14 +266,16 @@ async function createUser(request, env, admin) {
   const taken = await env.DB.prepare('SELECT id FROM users WHERE username = ?1').bind(username).first();
   if (taken) return error('That username is already taken.', 409);
   // One account per role per email: a second account must be for a different role.
-  const sameRole = await env.DB.prepare('SELECT id FROM users WHERE email = ?1 AND role = ?2').bind(email, role).first();
+  const sameRole = await env.DB.prepare('SELECT id FROM users WHERE email = ?1 AND role = ?2')
+    .bind(email, role)
+    .first();
   if (sameRole) return error(`This email already has a ${role} account.`, 409);
 
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO users (id, username, email, name, password_hash, role, is_active, must_change_password, created_by, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, ?7, ?8)`
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, ?7, ?8)`,
   )
     .bind(id, username, email, name, await hashPassword(tempPassword), role, admin.username || admin.email, createdAt)
     .run();
@@ -290,7 +295,8 @@ async function updateUser(request, env, admin, id) {
   if (!ROLES.includes(role)) return error('Invalid role.', 400);
   if (role !== row.role) {
     const clash = await env.DB.prepare('SELECT id FROM users WHERE email = ?1 AND role = ?2 AND id != ?3')
-      .bind(row.email, role, id).first();
+      .bind(row.email, role, id)
+      .first();
     if (clash) return error(`This email already has a ${role} account.`, 409);
   }
 
@@ -313,7 +319,7 @@ async function updateUser(request, env, admin, id) {
   }
 
   await env.DB.prepare(
-    'UPDATE users SET name = ?1, role = ?2, is_active = ?3, password_hash = ?4, must_change_password = ?5 WHERE id = ?6'
+    'UPDATE users SET name = ?1, role = ?2, is_active = ?3, password_hash = ?4, must_change_password = ?5 WHERE id = ?6',
   )
     .bind(name, role, isActive, passwordHash, mustChange, id)
     .run();
@@ -329,9 +335,7 @@ async function updateUser(request, env, admin, id) {
 // ---------- ESTIMATES ----------
 
 async function listEstimates(env) {
-  const { results } = await env.DB.prepare(
-    'SELECT data FROM estimates ORDER BY last_modified DESC'
-  ).all();
+  const { results } = await env.DB.prepare('SELECT data FROM estimates ORDER BY last_modified DESC').all();
   return json(results.map((r) => JSON.parse(r.data)));
 }
 
@@ -356,10 +360,7 @@ async function upsertEstimate(env, body, user, idFromPath) {
     existing?.status === PENDING_STATUS && contentFingerprint(estimate) !== contentFingerprint(existing);
   if (pendingContentChanged) {
     if (estimate.status === 'Approved') {
-      return error(
-        'This estimate has changed since it was submitted for SPOE check. Reload it and review again.',
-        409
-      );
+      return error('This estimate has changed since it was submitted for SPOE check. Reload it and review again.', 409);
     }
     if (estimate.status === PENDING_STATUS) estimate.status = 'Draft';
   }
@@ -403,7 +404,7 @@ async function upsertEstimate(env, body, user, idFromPath) {
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
      ON CONFLICT(id) DO UPDATE SET
        project_name = ?2, jira_ref = ?3, owner = ?4, status = ?5,
-       grand_total = ?6, data = ?7, last_modified = ?8`
+       grand_total = ?6, data = ?7, last_modified = ?8`,
   )
     .bind(
       id,
@@ -413,7 +414,7 @@ async function upsertEstimate(env, body, user, idFromPath) {
       estimate.status ?? null,
       Number.isFinite(Number(estimate.grandTotal)) ? Number(estimate.grandTotal) : null,
       JSON.stringify(estimate),
-      estimate.lastModified
+      estimate.lastModified,
     )
     .run();
 
@@ -438,7 +439,7 @@ async function putSettings(env, body) {
   if (!Number.isFinite(rate) || rate < 0) return error('dailyRate must be a positive number', 400);
   await env.DB.prepare(
     `INSERT INTO settings (key, value) VALUES ('dailyRate', ?1)
-     ON CONFLICT(key) DO UPDATE SET value = ?1`
+     ON CONFLICT(key) DO UPDATE SET value = ?1`,
   )
     .bind(String(rate))
     .run();

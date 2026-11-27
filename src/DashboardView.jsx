@@ -1,4 +1,17 @@
-import { Plus, Trash2, Calendar, FileText, LogOut, LayoutGrid, Search, User, AlertCircle, Menu, BarChart3, Tag } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Calendar,
+  FileText,
+  LogOut,
+  LayoutGrid,
+  Search,
+  User,
+  AlertCircle,
+  Menu,
+  BarChart3,
+  Tag,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { formatCurrency } from './App';
 import { isManager } from './api';
@@ -8,14 +21,25 @@ import { isManager } from './api';
  * COMPONENT: DASHBOARD VIEW
  * ------------------------------------------------------------------
  */
-export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimate, onDeleteEstimate, onLogout, onSwitchRole, onMenuClick, onNavigateToReports }) => {
+export const DashboardView = ({
+  user,
+  savedEstimates,
+  onCreateNew,
+  onOpenEstimate,
+  onDeleteEstimate,
+  onLogout,
+  onSwitchRole,
+  onMenuClick,
+  onNavigateToReports,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewFilter, setViewFilter] = useState('all'); // 'all' or 'pending'
   const [imgError, setImgError] = useState(false);
 
   // Filter Logic
-  const filteredEstimates = savedEstimates.filter(est => {
-    const matchesSearch = est.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredEstimates = savedEstimates.filter((est) => {
+    const matchesSearch =
+      est.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (est.jiraRef && est.jiraRef.toLowerCase().includes(searchTerm.toLowerCase())) ||
       est.lastModified.includes(searchTerm);
     if (viewFilter === 'pending') {
@@ -30,7 +54,10 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button
+              onClick={onMenuClick}
+              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
               <Menu size={24} />
             </button>
             <div>
@@ -39,15 +66,21 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
                   src="logo.png"
                   alt="FirstBaseIT"
                   className="h-10 object-contain"
-                  onError={() => setImgError(true)} />
+                  onError={() => setImgError(true)}
+                />
               ) : (
-                <span className="text-xl font-bold tracking-tighter text-slate-800"><span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.</span>
+                <span className="text-xl font-bold tracking-tighter text-slate-800">
+                  <span className="text-[#5ABBCE]">FirstBaseIT</span> Ltd.
+                </span>
               )}
             </div>
             <div className="h-6 w-px bg-slate-200 hidden md:block"></div>
             <h1 className="font-bold text-slate-700 text-lg hidden md:block">Estimation Dashboard</h1>
             {/* ADDED REPORTS LINK HERE */}
-            <button onClick={onNavigateToReports} className="text-sm font-medium text-slate-500 hover:text-[#5ABBCE] transition-colors ml-4 flex items-center gap-1">
+            <button
+              onClick={onNavigateToReports}
+              className="text-sm font-medium text-slate-500 hover:text-[#5ABBCE] transition-colors ml-4 flex items-center gap-1"
+            >
               <BarChart3 size={16} /> Reports
             </button>
           </div>
@@ -56,20 +89,25 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
             {/* VIEW-AS SWITCHER: Admins only, for testing other roles without re-logging in */}
             {user.actualRole === 'Admin' ? (
               <>
-              <span title="Admins can't see or change estimates. Screens are shown empty." className="whitespace-nowrap text-xs px-3 py-1 rounded-full border font-bold bg-amber-50 text-amber-700 border-amber-200">
-                Preview only
-              </span>
-              <button
-                onClick={onSwitchRole}
-                title="Admins can preview the app as each role. Server permissions still follow your real role."
-                className={`text-xs px-3 py-1 rounded-full border font-bold transition-all ${user.role === 'Admin'
-                    ? 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
-                    : user.role === 'Manager'
-                    ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
-                    : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'}`}
-              >
-                <span className="whitespace-nowrap">Preview as: {user.role}</span>
-              </button>
+                <span
+                  title="Admins can't see or change estimates. Screens are shown empty."
+                  className="whitespace-nowrap text-xs px-3 py-1 rounded-full border font-bold bg-amber-50 text-amber-700 border-amber-200"
+                >
+                  Preview only
+                </span>
+                <button
+                  onClick={onSwitchRole}
+                  title="Admins can preview the app as each role. Server permissions still follow your real role."
+                  className={`text-xs px-3 py-1 rounded-full border font-bold transition-all ${
+                    user.role === 'Admin'
+                      ? 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
+                      : user.role === 'Manager'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
+                        : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'
+                  }`}
+                >
+                  <span className="whitespace-nowrap">Preview as: {user.role}</span>
+                </button>
               </>
             ) : (
               <span className="text-xs px-3 py-1 rounded-full border font-bold bg-slate-100 text-slate-600 border-slate-200">
@@ -92,7 +130,6 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-
         {/* Manager Pending Alert */}
         {isManager(user.role) && (
           <div className="mb-8">
@@ -108,9 +145,9 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${viewFilter === 'pending' ? 'bg-purple-600 shadow-sm text-white' : 'text-purple-600 hover:bg-purple-100'}`}
               >
                 <AlertCircle size={16} /> Pending Reviews
-                {savedEstimates.filter(e => e.status === 'Pending SPOE Check').length > 0 && (
+                {savedEstimates.filter((e) => e.status === 'Pending SPOE Check').length > 0 && (
                   <span className="bg-white text-purple-600 text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">
-                    {savedEstimates.filter(e => e.status === 'Pending SPOE Check').length}
+                    {savedEstimates.filter((e) => e.status === 'Pending SPOE Check').length}
                   </span>
                 )}
               </button>
@@ -127,7 +164,8 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
               placeholder="Search estimates or JIRA ref..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#5ABBCE] outline-none" />
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#5ABBCE] outline-none"
+            />
           </div>
           <button
             onClick={onCreateNew}
@@ -145,7 +183,9 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
           </div>
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <p className="text-slate-500 text-sm font-medium mb-1">Pending Approval</p>
-            <p className="text-3xl font-bold text-purple-600">{savedEstimates.filter(e => e.status === 'Pending SPOE Check').length}</p>
+            <p className="text-3xl font-bold text-purple-600">
+              {savedEstimates.filter((e) => e.status === 'Pending SPOE Check').length}
+            </p>
           </div>
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <p className="text-slate-500 text-sm font-medium mb-1">Total Value Pipeline</p>
@@ -171,26 +211,47 @@ export const DashboardView = ({ user, savedEstimates, onCreateNew, onOpenEstimat
               </div>
               <h3 className="text-lg font-bold text-slate-700 mb-1">No estimates found</h3>
               <p className="text-slate-500 mb-6">Create your first project estimate to get started.</p>
-              <button onClick={onCreateNew} className="text-[#5ABBCE] font-bold hover:underline">Create New</button>
+              <button onClick={onCreateNew} className="text-[#5ABBCE] font-bold hover:underline">
+                Create New
+              </button>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
               {filteredEstimates.map((est) => (
-                <div key={est.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                <div
+                  key={est.id}
+                  className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
                   <div className="flex-1 cursor-pointer" onClick={() => onOpenEstimate(est)}>
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-bold text-slate-800 text-lg group-hover:text-[#5ABBCE] transition-colors">{est.projectName}</h3>
+                      <h3 className="font-bold text-slate-800 text-lg group-hover:text-[#5ABBCE] transition-colors">
+                        {est.projectName}
+                      </h3>
                       {/* Status Badge */}
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${est.status === 'Approved' ? 'bg-green-100 text-green-700 border-green-200' :
-                          est.status === 'Pending SPOE Check' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                            'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                      <span
+                        className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                          est.status === 'Approved'
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : est.status === 'Pending SPOE Check'
+                              ? 'bg-purple-100 text-purple-700 border-purple-200'
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}
+                      >
                         {est.status || 'Draft'}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-400">
-                      <span className="flex items-center gap-1"><User size={12} /> {est.owner || 'Unknown'}</span>
-                      {est.jiraRef && <span className="flex items-center gap-1"><Tag size={12} /> {est.jiraRef}</span>}
-                      <span className="flex items-center gap-1"><Calendar size={12} /> {est.projectDate}</span>
+                      <span className="flex items-center gap-1">
+                        <User size={12} /> {est.owner || 'Unknown'}
+                      </span>
+                      {est.jiraRef && (
+                        <span className="flex items-center gap-1">
+                          <Tag size={12} /> {est.jiraRef}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} /> {est.projectDate}
+                      </span>
                     </div>
                   </div>
 
